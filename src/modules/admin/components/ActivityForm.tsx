@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from "react";
-import type { AdminActivity, ActivityInput, ActivityDurationInput } from "../services/activitiesService";
+import type {
+  AdminActivity,
+  ActivityInput,
+  ActivityDurationInput,
+} from "../services/activitiesService";
 import Spinner from "./Spinner";
 
 type ActivityFormProps = {
@@ -39,15 +43,21 @@ const emptyImageField = "";
 
 const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   const [name, setName] = useState(initial?.name ?? "");
-  const [description, setDescription] = useState(initial?.short_description ?? "");
+  const [description, setDescription] = useState(
+    initial?.short_description ?? "",
+  );
   const [images, setImages] = useState<string[]>(
-    initial?.images && initial.images.length > 0 ? initial.images : [emptyImageField],
+    initial?.images && initial.images.length > 0
+      ? initial.images
+      : [emptyImageField],
   );
   const [minPlayers, setMinPlayers] = useState(initial?.min_players ?? 1);
   const [maxPlayers, setMaxPlayers] = useState(initial?.max_players ?? 4);
   const [tableCount, setTableCount] = useState(initial?.table_count ?? 1);
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
-  const [durations, setDurations] = useState<DurationRow[]>(toDurationRows(initial));
+  const [durations, setDurations] = useState<DurationRow[]>(
+    toDurationRows(initial),
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,14 +67,20 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   };
 
   const addImageField = () => setImages((prev) => [...prev, emptyImageField]);
-  const removeImageField = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeImageField = (index: number) =>
+    setImages((prev) => prev.filter((_, i) => i !== index));
 
   const updateDuration = (key: string, patch: Partial<DurationRow>) => {
-    setDurations((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+    setDurations((prev) =>
+      prev.map((d) => (d.key === key ? { ...d, ...patch } : d)),
+    );
   };
 
   const addDuration = () => {
-    setDurations((prev) => [...prev, { key: nextDurationKey(), minutes: 45, label: "45 min", price: 0 }]);
+    setDurations((prev) => [
+      ...prev,
+      { key: nextDurationKey(), minutes: 45, label: "45 min", price: 0 },
+    ]);
   };
 
   const removeDuration = (key: string) => {
@@ -74,11 +90,13 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   const validate = (): string | null => {
     if (name.trim().length < 2) return "Enter an activity name.";
     if (minPlayers < 1) return "Minimum players must be at least 1.";
-    if (maxPlayers < minPlayers) return "Maximum players can't be less than minimum players.";
+    if (maxPlayers < minPlayers)
+      return "Maximum players can't be less than minimum players.";
     if (tableCount < 1) return "There must be at least 1 table.";
     if (durations.length === 0) return "Add at least one duration option.";
     for (const d of durations) {
-      if (d.minutes <= 0) return "Every duration must be longer than 0 minutes.";
+      if (d.minutes <= 0)
+        return "Every duration must be longer than 0 minutes.";
       if (d.label.trim().length === 0) return "Every duration needs a label.";
       if (d.price < 0) return "Prices can't be negative.";
     }
@@ -121,7 +139,11 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} noValidate className="flex flex-col gap-6">
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       {/* Basics */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
         <h3 className="text-sm font-medium text-neutral-900">Basics</h3>
@@ -166,7 +188,9 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
                 type="number"
                 min={1}
                 value={minPlayers}
-                onChange={(e) => setMinPlayers(Math.max(1, Number(e.target.value) || 1))}
+                onChange={(e) =>
+                  setMinPlayers(Math.max(1, Number(e.target.value) || 1))
+                }
                 disabled={submitting}
                 className={inputClass}
               />
@@ -180,7 +204,9 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
                 type="number"
                 min={1}
                 value={maxPlayers}
-                onChange={(e) => setMaxPlayers(Math.max(1, Number(e.target.value) || 1))}
+                onChange={(e) =>
+                  setMaxPlayers(Math.max(1, Number(e.target.value) || 1))
+                }
                 disabled={submitting}
                 className={inputClass}
               />
@@ -196,13 +222,15 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
               type="number"
               min={1}
               value={tableCount}
-              onChange={(e) => setTableCount(Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) =>
+                setTableCount(Math.max(1, Number(e.target.value) || 1))
+              }
               disabled={submitting}
               className={inputClass}
             />
             <p className="mt-1 text-xs text-neutral-500">
-              Lowering this retires the highest-numbered tables rather than deleting them, so past bookings stay
-              valid.
+              Lowering this retires the highest-numbered tables rather than
+              deleting them, so past bookings stay valid.
             </p>
           </div>
 
@@ -222,7 +250,9 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
       {/* Images */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
         <h3 className="text-sm font-medium text-neutral-900">Images</h3>
-        <p className="mt-1 text-xs text-neutral-500">Paste image URLs. The first one is used as the cover photo.</p>
+        <p className="mt-1 text-xs text-neutral-500">
+          Paste image URLs. The first one is used as the cover photo.
+        </p>
 
         <div className="mt-4 flex flex-col gap-2.5">
           {images.map((img, i) => (
@@ -260,22 +290,31 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
 
       {/* Durations & pricing */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-neutral-900">Durations & pricing</h3>
+        <h3 className="text-sm font-medium text-neutral-900">
+          Durations & pricing
+        </h3>
         <p className="mt-1 text-xs text-neutral-500">
-          Removing a duration retires it instead of deleting it, so bookings that already used it stay historically
-          accurate.
+          Removing a duration retires it instead of deleting it, so bookings
+          that already used it stay historically accurate.
         </p>
 
         <div className="mt-4 flex flex-col gap-3">
           {durations.map((d) => (
-            <div key={d.key} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
+            <div
+              key={d.key}
+              className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2"
+            >
               <div>
                 <label className={labelClass}>Minutes</label>
                 <input
                   type="number"
                   min={1}
                   value={d.minutes}
-                  onChange={(e) => updateDuration(d.key, { minutes: Math.max(1, Number(e.target.value) || 1) })}
+                  onChange={(e) =>
+                    updateDuration(d.key, {
+                      minutes: Math.max(1, Number(e.target.value) || 1),
+                    })
+                  }
                   disabled={submitting}
                   className={inputClass}
                 />
@@ -284,7 +323,9 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
                 <label className={labelClass}>Label</label>
                 <input
                   value={d.label}
-                  onChange={(e) => updateDuration(d.key, { label: e.target.value })}
+                  onChange={(e) =>
+                    updateDuration(d.key, { label: e.target.value })
+                  }
                   disabled={submitting}
                   placeholder="e.g. 90 min"
                   className={inputClass}
@@ -296,7 +337,11 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
                   type="number"
                   min={0}
                   value={d.price}
-                  onChange={(e) => updateDuration(d.key, { price: Math.max(0, Number(e.target.value) || 0) })}
+                  onChange={(e) =>
+                    updateDuration(d.key, {
+                      price: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
                   disabled={submitting}
                   className={inputClass}
                 />
@@ -324,7 +369,10 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
       </section>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+        >
           {error}
         </p>
       )}
@@ -336,7 +384,11 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
           className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting && <Spinner />}
-          {submitting ? "Saving…" : initial ? "Save changes" : "Create activity"}
+          {submitting
+            ? "Saving…"
+            : initial
+            ? "Save changes"
+            : "Create activity"}
         </button>
         <button
           type="button"

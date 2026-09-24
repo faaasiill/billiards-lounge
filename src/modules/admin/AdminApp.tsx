@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { AdminAuthProvider } from "./context/AdminAuthContext";
-import { useAdminRoute } from "./hooks/useAdminRoute";
+import { matchRouteParam, useAdminRoute } from "./hooks/useAdminRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import LoginPage from "./pages/LoginPage";
@@ -9,6 +9,9 @@ import ComingSoonPage from "./pages/ComingSoonPage";
 import AdminsPage from "./pages/AdminsPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import SettingsPage from "./pages/SettingsPage";
+import BookingsPage from "./pages/BookingsPage";
+import CustomersPage from "./pages/CustomersPage";
+import CustomerDetailsPage from "./pages/CustomerDetailsPage";
 import { ALL_NAV_ITEMS } from "./config/navigation";
 
 /**
@@ -18,6 +21,8 @@ import { ALL_NAV_ITEMS } from "./config/navigation";
 const PAGES: Record<string, ComponentType> = {
   dashboard: DashboardPage,
   admins: AdminsPage,
+  bookings: BookingsPage,
+  customers: CustomersPage,
   activities: ActivitiesPage,
   settings: SettingsPage,
 };
@@ -26,6 +31,23 @@ const AdminRoutes = () => {
   const { path, navigate } = useAdminRoute();
 
   if (path === "/admin-login") return <LoginPage />;
+
+  // Detail route: /admin/customers/:id (not shown in the sidebar).
+  const customerId = matchRouteParam(path, "/admin/customers");
+  if (customerId) {
+    return (
+      <ProtectedRoute>
+        <AdminLayout
+          title="Customer"
+          currentPath="/admin/customers"
+          onNavigate={navigate}
+        >
+          {/* key forces a fresh load when moving between two customers */}
+          <CustomerDetailsPage key={customerId} customerId={customerId} />
+        </AdminLayout>
+      </ProtectedRoute>
+    );
+  }
 
   const item = ALL_NAV_ITEMS.find((n) => n.path === path);
   const Page = item && !item.comingSoon ? PAGES[item.id] : undefined;

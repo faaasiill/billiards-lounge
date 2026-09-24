@@ -59,3 +59,20 @@ export const isAdminPath = (hash: string): boolean => {
   const p = normalize(hash);
   return p === "/admin" || p.startsWith("/admin/") || p === "/admin-login";
 };
+
+/**
+ * Matches a path like "/admin/customers/9876543210" against a prefix like
+ * "/admin/customers" and returns the trailing segment (decoded), or null.
+ */
+export const matchRouteParam = (path: string, prefix: string): string | null => {
+  if (!path.startsWith(`${prefix}/`)) return null;
+
+  const rest = path.slice(prefix.length + 1);
+  if (rest === "" || rest.includes("/")) return null;
+
+  try {
+    return decodeURIComponent(rest);
+  } catch {
+    return rest;
+  }
+};

@@ -118,3 +118,35 @@ export const ShieldIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9 12 2 2 4-4" />
   </svg>
 );
+
+export const PhoneIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
+  </svg>
+);
+
+export const ArrowLeftIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
+export const SearchIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
+export const ChevronRightIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="m9 6 6 6-6 6" />
+  </svg>
+);
+
+export const UserIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c.7-4 3.8-6 8-6s7.3 2 8 6" />
+  </svg>
+);

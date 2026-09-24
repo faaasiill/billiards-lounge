@@ -9,7 +9,12 @@ type AdminLayoutProps = {
   children: ReactNode;
 };
 
-const AdminLayout = ({ title, currentPath, onNavigate, children }: AdminLayoutProps) => {
+const AdminLayout = ({
+  title,
+  currentPath,
+  onNavigate,
+  children,
+}: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close the mobile drawer whenever the route changes.

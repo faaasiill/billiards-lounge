@@ -34,30 +34,72 @@ export type NavSection = {
  * PAGES map. Nothing else needs to change.
  */
 export const NAV_SECTIONS: NavSection[] = [
-    {
+  {
     id: "main",
     label: "Main",
     items: [
-      { id: "dashboard", label: "Dashboard", path: "/admin", icon: DashboardIcon },
-      { id: "admins", label: "Admins", path: "/admin/admins", icon: ShieldIcon },
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        path: "/admin",
+        icon: DashboardIcon,
+      },
+      {
+        id: "admins",
+        label: "Admins",
+        path: "/admin/admins",
+        icon: ShieldIcon,
+      },
     ],
   },
   {
     id: "management",
     label: "Management",
     items: [
-      { id: "bookings", label: "Bookings", path: "/admin/bookings", icon: CalendarIcon, comingSoon: true },
-      { id: "customers", label: "Customers", path: "/admin/customers", icon: UsersIcon, comingSoon: true },
-      { id: "activities", label: "Activities & Tables", path: "/admin/activities", icon: TableIcon },
-      { id: "pricing", label: "Pricing", path: "/admin/pricing", icon: TagIcon, comingSoon: true },
+      {
+        id: "bookings",
+        label: "Bookings",
+        path: "/admin/bookings",
+        icon: CalendarIcon,
+      },
+      {
+        id: "customers",
+        label: "Customers",
+        path: "/admin/customers",
+        icon: UsersIcon,
+      },
+      {
+        id: "activities",
+        label: "Activities & Tables",
+        path: "/admin/activities",
+        icon: TableIcon,
+      },
+      {
+        id: "pricing",
+        label: "Pricing",
+        path: "/admin/pricing",
+        icon: TagIcon,
+        comingSoon: true,
+      },
     ],
   },
   {
     id: "insights",
     label: "Insights",
     items: [
-      { id: "analytics", label: "Analytics", path: "/admin/analytics", icon: ChartIcon, comingSoon: true },
-      { id: "settings", label: "Settings", path: "/admin/settings", icon: SettingsIcon },
+      {
+        id: "analytics",
+        label: "Analytics",
+        path: "/admin/analytics",
+        icon: ChartIcon,
+        comingSoon: true,
+      },
+      {
+        id: "settings",
+        label: "Settings",
+        path: "/admin/settings",
+        icon: SettingsIcon,
+      },
     ],
   },
 ];

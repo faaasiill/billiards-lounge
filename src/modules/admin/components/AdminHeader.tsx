@@ -9,7 +9,8 @@ type AdminHeaderProps = {
   onMenuClick: () => void;
 };
 
-const initialsOf = (value: string) => value.trim().slice(0, 1).toUpperCase() || "A";
+const initialsOf = (value: string) =>
+  value.trim().slice(0, 1).toUpperCase() || "A";
 
 const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
   const { user, signOut } = useAdminAuth();
@@ -24,7 +25,8 @@ const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
     if (!menuOpen) return;
 
     const onPointerDown = (e: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setMenuOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMenuOpen(false);
@@ -55,9 +57,13 @@ const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
 
   const email = user?.email ?? "";
   const avatarUrl =
-    typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null;
+    typeof user?.user_metadata?.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : null;
   const displayName =
-    (typeof user?.user_metadata?.full_name === "string" && user.user_metadata.full_name) || email;
+    (typeof user?.user_metadata?.full_name === "string" &&
+      user.user_metadata.full_name) ||
+    email;
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-3 pt-[env(safe-area-inset-top)] sm:px-6">
@@ -70,7 +76,9 @@ const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
         >
           <MenuIcon />
         </button>
-        <h1 className="truncate text-base font-semibold tracking-tight text-neutral-900">{title}</h1>
+        <h1 className="truncate text-base font-semibold tracking-tight text-neutral-900">
+          {title}
+        </h1>
       </div>
 
       <div ref={menuRef} className="relative">
@@ -93,7 +101,9 @@ const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
               {initialsOf(displayName)}
             </span>
           )}
-          <span className="hidden max-w-40 truncate text-sm text-neutral-700 sm:block">{displayName}</span>
+          <span className="hidden max-w-40 truncate text-sm text-neutral-700 sm:block">
+            {displayName}
+          </span>
         </button>
 
         {menuOpen && (
@@ -102,7 +112,9 @@ const AdminHeader = ({ title, onMenuClick }: AdminHeaderProps) => {
             className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(16rem,calc(100vw-1.5rem))] rounded-xl border border-neutral-200 bg-white p-2 shadow-lg"
           >
             <div className="border-b border-neutral-100 px-3 pb-2.5 pt-1.5">
-              <p className="truncate text-sm font-medium text-neutral-900">{displayName}</p>
+              <p className="truncate text-sm font-medium text-neutral-900">
+                {displayName}
+              </p>
               {email && displayName !== email && (
                 <p className="truncate text-xs text-neutral-500">{email}</p>
               )}
