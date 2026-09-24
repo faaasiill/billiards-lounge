@@ -12,23 +12,22 @@ const CARDS: CardData[] = [
   {
     id: 1,
     table: "Table 06",
-    status: "Reserved · 8pm",
-    image:
-      "https://images.unsplash.com/photo-1642191135995-6de2cce0bbdc?auto=format&fit=crop&w=700&q=80",
+    status: "Make your shot count.",
+    image: "https://i.pinimg.com/1200x/ef/3a/f3/ef3af32ec2629068f2ce7a7c5f32052c.jpg",
   },
   {
     id: 2,
     table: "Table 04",
-    status: "Open now",
+    status: "Good games start here.",
     image:
       "https://images.unsplash.com/photo-1642376826232-3d2f86692bb5?auto=format&fit=crop&w=700&q=80",
   },
   {
     id: 3,
     table: "Table 02",
-    status: "Open now",
+    status: "Aim. Strike. Repeat.",
     image:
-      "https://images.unsplash.com/photo-1696350500452-cca0d6fa1377?auto=format&fit=crop&w=700&q=80",
+      "https://i.pinimg.com/736x/51/7d/cb/517dcb13b4a7a595197a06555b85f333.jpg",
     badge: "2",
   },
 ];
