@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import logo from "../../../assets/logo design1.png";
 import { useTheme } from "../../../context/ThemeContext";
+import { useCustomerSession } from "../../booking/hooks/useCustomerSession";
 
 type NavbarProps = {
   /** Brand-pill mode: shown on the homepage and top of the booking flow. */
@@ -83,9 +84,9 @@ const Navbar = ({
 }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
+  const { session, logout } = useCustomerSession();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -125,23 +126,13 @@ const Navbar = ({
         Genuinely transparent: no bg-* utility, no inline background, no
         wrapper, pseudo-element or shadow behind it. Whatever the current
         page root renders (bg-felt / light:bg-cream) shows straight through.
-        This previously *looked* like it had a background on the booking
-        screens because those screens never received the `data-theme`
-        attribute, so every `light:` class in the tree — including on
-        elements sitting near the navbar — silently failed and kept
-        rendering dark-mode colors against a light page. That's fixed at
-        the source in ThemeContext now; this header just stays unstyled.
       */}
       <header className="relative z-50 px-6 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
         <div className="mx-auto flex w-full items-center justify-between gap-3">
           {/* Back mode */}
           {onBack ? (
             <div className="flex min-w-0 items-center gap-3 animate-[fade-slide-up_280ms_ease-out]">
-              <button
-                onClick={onBack}
-                aria-label="Go back"
-                className={circleButtonClass}
-              >
+              <button onClick={onBack} aria-label="Go back" className={circleButtonClass}>
                 <BackIcon />
               </button>
 
@@ -157,11 +148,7 @@ const Navbar = ({
               onClick={onBrandClick}
               className="flex h-10 items-center gap-1.5 rounded-full bg-ivory px-1.5 py-1.5 transition-transform duration-200 active:scale-95 light:bg-felt-dark"
             >
-              <img
-                src={logo}
-                alt={brand}
-                className="h-7 w-7 rounded-full object-cover"
-              />
+              <img src={logo} alt={brand} className="h-7 w-7 rounded-full object-cover" />
 
               <span className="pr-1.5 text-xs font-medium tracking-tighter text-felt-dark light:text-ivory">
                 {brand}
@@ -252,25 +239,26 @@ const Navbar = ({
                   aria-pressed={theme === "light"}
                   className="mt-1 flex w-full items-center justify-between rounded-full border border-sage/30 px-4 py-2.5 text-left text-sm tracking-tight text-ivory transition-colors active:bg-ivory/10 light:border-sage-dark/40 light:text-felt-dark light:active:bg-felt-dark/10"
                 >
-                  <span>
-                    {theme === "dark" ? "Light mode" : "Dark mode"}
-                  </span>
+                  <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 
                   <span className="flex h-5 w-5 items-center justify-center">
                     {theme === "dark" ? <SunIcon /> : <MoonIcon />}
                   </span>
                 </button>
 
-                {/* Login */}
-                <button
-                  onClick={() => {
-                    setIsAuthenticated((value) => !value);
-                    closeMenu();
-                  }}
-                  className="mt-1 block w-full rounded-full border border-sage/30 px-4 py-2.5 text-left text-sm tracking-tight text-ivory transition-colors active:bg-ivory/10 light:border-sage-dark/40 light:text-felt-dark light:active:bg-felt-dark/10"
-                >
-                  {isAuthenticated ? "Logout" : "Login"}
-                </button>
+                {/* Logout — only when a customer session exists. Login itself
+                    happens at booking time, when the phone number is needed. */}
+                {session && (
+                  <button
+                    onClick={() => {
+                      logout();
+                      closeMenu();
+                    }}
+                    className="mt-1 block w-full truncate rounded-full border border-sage/30 px-4 py-2.5 text-left text-sm tracking-tight text-ivory transition-colors active:bg-ivory/10 light:border-sage-dark/40 light:text-felt-dark light:active:bg-felt-dark/10"
+                  >
+                    Logout ({session.name.split(" ")[0]})
+                  </button>
+                )}
 
                 {/* Book Now */}
                 {onBookNow && (

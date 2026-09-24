@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import DateStrip from "./DateStrip";
+import { DateStripSkeleton } from "./Skeleton";
 import { useMorphTransition, SETTLE_TRANSITION } from "./useMorphTransition";
 
 import { buildDateOptionsFrom, buildMonthGrid } from "../mockData";
@@ -10,6 +11,10 @@ import type { DateOption } from "../types";
 type DateCalendarProps = {
   selectedId: string | null;
   onSelect: (date: DateOption) => void;
+  /** True when the club is closed on the given date (weekly off day or closure). */
+  isDateDisabled?: (date: DateOption) => boolean;
+  /** While club settings are loading, show a skeleton instead of enabled dates. */
+  loading?: boolean;
 };
 
 const COMPACT_COUNT = 14;
@@ -45,7 +50,7 @@ const ChevronRight = () => (
 const navBtnClass =
   "flex h-8 w-8 items-center justify-center rounded-full text-ivory/70 transition-all duration-200 active:scale-90 active:bg-ivory/10 disabled:pointer-events-none disabled:opacity-25 light:text-felt-dark/70 light:active:bg-felt-dark/10";
 
-const DateCalendar = ({ selectedId, onSelect }: DateCalendarProps) => {
+const DateCalendar = ({ selectedId, onSelect, isDateDisabled, loading = false }: DateCalendarProps) => {
   const today = useMemo(() => startOfDay(new Date()), []);
   const maxMonth = useMemo(() => addMonths(startOfMonth(today), MAX_MONTHS_AHEAD), [today]);
 
@@ -66,10 +71,33 @@ const DateCalendar = ({ selectedId, onSelect }: DateCalendarProps) => {
     reducedMotion,
   } = morph;
 
+  // When the selected date is outside the current 14-day window (for example
+  // the first open day is weeks away), move the window so it is visible.
+  const [lastSyncedId, setLastSyncedId] = useState<string | null>(selectedId);
+  if (selectedId !== lastSyncedId) {
+    setLastSyncedId(selectedId);
+
+    if (selectedId) {
+      const [y, m, d] = selectedId.split("-").map(Number);
+      const selectedDate = new Date(y, m - 1, d);
+      const windowEnd = new Date(compactAnchor);
+      windowEnd.setDate(windowEnd.getDate() + COMPACT_COUNT - 1);
+
+      if (selectedDate < compactAnchor || selectedDate > windowEnd) {
+        setCompactAnchor(selectedDate);
+      }
+      if (!sameMonth(selectedDate, monthAnchor)) {
+        setMonthAnchor(startOfMonth(selectedDate));
+      }
+    }
+  }
+
   const compactDates = useMemo(() => buildDateOptionsFrom(compactAnchor, COMPACT_COUNT), [compactAnchor]);
   const monthGrid = useMemo(() => buildMonthGrid(monthAnchor), [monthAnchor]);
 
   const handleSelect = (date: DateOption) => {
+    if (isDateDisabled?.(date)) return;
+
     onSelect(date);
 
     const inCompactRange = compactDates.some((item) => item.id === date.id);
@@ -105,7 +133,16 @@ const DateCalendar = ({ selectedId, onSelect }: DateCalendarProps) => {
             pointerEvents: progress < 0.5 ? "auto" : "none",
           }}
         >
-          <DateStrip dates={compactDates} selectedId={selectedId} onSelect={handleSelect} />
+          {loading ? (
+            <DateStripSkeleton />
+          ) : (
+            <DateStrip
+              dates={compactDates}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              isDisabled={isDateDisabled}
+            />
+          )}
         </div>
 
         {/* Expanded month calendar */}
@@ -168,28 +205,32 @@ const DateCalendar = ({ selectedId, onSelect }: DateCalendarProps) => {
                 const selected = day.id === selectedId;
                 const isPast = day.date.getTime() < today.getTime();
                 const isToday = day.date.getTime() === today.getTime();
+                const isClosed = !loading && !isPast && (isDateDisabled?.(day) ?? false);
+                const unavailable = isPast || isClosed || loading;
 
                 return (
                   <button
                     key={day.id}
                     type="button"
-                    disabled={isPast}
+                    disabled={unavailable}
                     onClick={() => handleSelect(day)}
-                    aria-label={`Select ${day.dayNumber}`}
+                    aria-label={`Select ${day.dayNumber}${isClosed ? " (closed)" : ""}`}
                     aria-pressed={selected}
                     className="flex h-10 items-center justify-center"
                   >
                     <span
-                      className={`relative flex h-9 w-9 items-center justify-center rounded-full text-sm tracking-tight transition-all duration-200 active:scale-90 ${
+                      className={`relative flex h-9 w-9 items-center justify-center rounded-full text-sm tracking-tight transition-all duration-200 ${
                         isPast
                           ? "text-ivory/20 light:text-felt-dark/20"
-                          : selected
-                            ? "bg-brass font-medium text-felt-dark"
-                            : "text-ivory/85 hover:bg-ivory/5 active:bg-ivory/10 light:text-felt-dark/80 light:hover:bg-felt-dark/5 light:active:bg-felt-dark/10"
+                          : isClosed
+                            ? "cursor-not-allowed text-ivory/20 line-through decoration-ivory/25 light:text-felt-dark/20 light:decoration-felt-dark/25"
+                            : selected
+                              ? "bg-brass font-medium text-felt-dark active:scale-90"
+                              : "text-ivory/85 hover:bg-ivory/5 active:scale-90 active:bg-ivory/10 light:text-felt-dark/80 light:hover:bg-felt-dark/5 light:active:bg-felt-dark/10"
                       }`}
                     >
                       {day.dayNumber}
-                      {isToday && !selected && (
+                      {isToday && !selected && !isClosed && (
                         <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-brass" />
                       )}
                     </span>

@@ -39,11 +39,9 @@ const IMAGE_EXPANDED_RADIUS = 28; // px — rounded-4xl, the app's "expanded car
  * One booking's summary card. The activity photo itself is the morph
  * target: at rest it's a small rounded thumbnail sitting beside the
  * activity name; tapping the card grows that same image in place into a
- * full-width, rounded-4xl hero banner (mirroring the schedule-stage hero
- * and ActivityList's photo cards), while the name/date text reflows
+ * full-width, rounded-4xl hero banner, while the name/date text reflows
  * beneath it and the extra detail rows fade in — all driven by the same
- * progress value from useMorphTransition, so it reads as one continuous
- * expansion rather than two unrelated animations.
+ * progress value from useMorphTransition.
  */
 const BookingCard = ({ booking, delayMs = 0 }: BookingCardProps) => {
   const morph = useMorphTransition();
@@ -57,11 +55,9 @@ const BookingCard = ({ booking, delayMs = 0 }: BookingCardProps) => {
       className="mb-5 animate-[fade-slide-up_420ms_ease-out] overflow-hidden rounded-4xl border border-ivory/10 bg-ivory/5 light:border-felt-dark/10 light:bg-felt-dark/5"
       style={{ animationDelay: `${delayMs}ms`, animationFillMode: "backwards" }}
     >
-      {/* Header — always visible, tappable to toggle. Layout itself
-          morphs from a horizontal thumbnail+text row (progress 0) into a
-          stacked hero-image-then-text layout (progress 1) by animating
-          padding/gap via inline styles driven by progress, so the
-          image's growth and the text's reflow happen together. */}
+      {/* Header — always visible, tappable to toggle. Layout morphs from a
+          horizontal thumbnail+text row (progress 0) into a stacked
+          hero-image-then-text layout (progress 1). */}
       <button
         onClick={toggle}
         aria-expanded={expanded}
@@ -82,21 +78,20 @@ const BookingCard = ({ booking, delayMs = 0 }: BookingCardProps) => {
           {/* The morphing image itself — same element throughout, just
               growing in height/width/radius, never swapped or unmounted. */}
           <div
-            className="relative shrink-0 overflow-hidden bg-cover bg-center"
+            className="relative shrink-0 overflow-hidden bg-ivory/10 bg-cover bg-center light:bg-felt-dark/10"
             style={{
               width: progress > 0 ? `${100 * progress}%` : IMAGE_COMPACT_SIZE,
               flexBasis: progress > 0 ? "100%" : IMAGE_COMPACT_SIZE,
               height: imageHeight,
               borderRadius: imageRadius,
-              backgroundImage: `url(${booking.activity.image})`,
+              backgroundImage: booking.activity.image ? `url(${booking.activity.image})` : undefined,
               transition: transitionsOn
                 ? `height ${SETTLE_TRANSITION}, width ${SETTLE_TRANSITION}, flex-basis ${SETTLE_TRANSITION}, border-radius ${SETTLE_TRANSITION}`
                 : "none",
             }}
           >
-            {/* Bottom scrim + overlaid name/date, matching the schedule
-                hero and ActivityList's photo-card treatment — fades in
-                only once the image is meaningfully expanded. */}
+            {/* Bottom scrim + overlaid name/date, fades in only once the
+                image is meaningfully expanded. */}
             <div
               className="pointer-events-none absolute inset-x-0 bottom-0"
               style={{
@@ -119,7 +114,9 @@ const BookingCard = ({ booking, delayMs = 0 }: BookingCardProps) => {
               <span className="font-display text-lg leading-none tracking-[-0.05em] text-ivory">
                 {booking.activity.name}
               </span>
-              <span className="mt-1 text-xs tracking-tight text-ivory/80">{booking.activity.tagline}</span>
+              {booking.activity.tagline && (
+                <span className="mt-1 text-xs tracking-tight text-ivory/80">{booking.activity.tagline}</span>
+              )}
             </div>
           </div>
 

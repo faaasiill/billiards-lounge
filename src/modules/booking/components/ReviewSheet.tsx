@@ -5,6 +5,7 @@ import type { BookingDraft } from "../types";
 type ReviewSheetProps = {
   open: boolean;
   draft: BookingDraft;
+  submitting?: boolean;
   onClose: () => void;
   onEditSchedule: () => void;
   onEditDetails: () => void;
@@ -32,6 +33,7 @@ const EditLink = ({ onClick }: { onClick: () => void }) => (
 const ReviewSheet = ({
   open,
   draft,
+  submitting = false,
   onClose,
   onEditSchedule,
   onEditDetails,
@@ -54,14 +56,15 @@ const ReviewSheet = ({
   return (
     <BottomSheet
       open={open}
-      onClose={onClose}
+      onClose={submitting ? () => {} : onClose}
       title="Review booking"
       footer={
         <button
           onClick={onConfirm}
-          className="flex w-full items-center justify-center rounded-full border border-ivory/10 bg-ivory py-3.5 text-center text-sm font-medium tracking-tight text-felt-dark transition-all duration-300 hover:bg-brass active:scale-[0.98] light:border-felt-dark/10 light:bg-felt-dark light:text-ivory light:hover:text-felt-dark"
+          disabled={submitting}
+          className="flex w-full items-center justify-center rounded-full border border-ivory/10 bg-ivory py-3.5 text-center text-sm font-medium tracking-tight text-felt-dark transition-all duration-300 hover:bg-brass active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 light:border-felt-dark/10 light:bg-felt-dark light:text-ivory light:hover:text-felt-dark"
         >
-          Confirm booking · ₹{total}
+          {submitting ? "Confirming…" : `Confirm booking · ₹${total}`}
         </button>
       }
     >

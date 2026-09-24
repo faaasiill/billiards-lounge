@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomSheet from "./BottomSheet";
+import { isValidPhone } from "../hooks/useCustomerSession";
 import type { CustomerDetails } from "../types";
 
 type CustomerDetailsSheetProps = {
@@ -19,7 +20,19 @@ const CustomerDetailsSheet = ({ open, initial, onClose, onSubmit }: CustomerDeta
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
-  const canSubmit = name.trim().length > 1 && phone.trim().length >= 8;
+  // The component stays mounted between opens, so re-sync from `initial`
+  // (e.g. right after a fresh login) every time the sheet opens.
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(initial?.name ?? "");
+      setPhone(initial?.phone ?? "");
+      setNotes(initial?.notes ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const canSubmit = name.trim().length > 1 && isValidPhone(phone);
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -59,7 +72,7 @@ const CustomerDetailsSheet = ({ open, initial, onClose, onSubmit }: CustomerDeta
             className={`${fieldBase} rounded-full`}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 98765 43210"
+            placeholder="10-digit mobile number"
             inputMode="tel"
             autoComplete="tel"
           />

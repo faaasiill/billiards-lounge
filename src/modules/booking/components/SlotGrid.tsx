@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import StateCard, { ClockIcon } from "./StateCard";
 import { SETTLE_TRANSITION, useMorphTransition } from "./useMorphTransition";
 import type { TimeSlot } from "../types";
 
@@ -58,8 +59,6 @@ const SlotButton = ({
  * Compact ↔ expanded morph for time slots, matching the date picker's
  * interaction language: a 3-up preview row of the nearest slots (auto-
  * centred on whichever is selected) morphs in place into the full grid.
- * Selecting a slot from the expanded grid gently collapses back to the
- * compact row, keeping the chosen time visually connected throughout.
  */
 const SlotGrid = ({ slots, selectedId, onSelect }: SlotGridProps) => {
   const morph = useMorphTransition();
@@ -82,7 +81,7 @@ const SlotGrid = ({ slots, selectedId, onSelect }: SlotGridProps) => {
     return slots.slice(start, start + COMPACT_COUNT);
   }, [slots, selectedId, availableSlots]);
 
-  // Collapse the compact preview back to 3-up if the activity/date changes.
+  // Collapse back to the 3-up preview if the activity/date changes.
   useEffect(() => {
     settle(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,9 +94,12 @@ const SlotGrid = ({ slots, selectedId, onSelect }: SlotGridProps) => {
 
   if (slots.length === 0) {
     return (
-      <p className="text-sm tracking-tight text-ivory/50 light:text-felt-dark/50">
-        Pick a date to see available times.
-      </p>
+      <StateCard
+        compact
+        icon={<ClockIcon />}
+        title="No times available"
+        description="Try another day or a shorter duration."
+      />
     );
   }
 
@@ -151,7 +153,7 @@ const SlotGrid = ({ slots, selectedId, onSelect }: SlotGridProps) => {
         </div>
       </div>
 
-      {/* Drag handle — same affordance as the date picker */}
+      {/* Drag handle */}
       <div
         {...handleProps}
         onKeyDown={(event) => {
