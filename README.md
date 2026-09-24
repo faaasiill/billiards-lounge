@@ -1,0 +1,12 @@
+src/context/ThemeContext.tsx                        (edited)
+src/modules/home/HomePage.tsx                        (edited)
+src/modules/home/components/Navbar.tsx                (edited)
+src/modules/booking/types.ts                          (edited)
+src/modules/booking/mockData.ts                       (edited)
+src/modules/booking/BookingPage.tsx                    (edited)
+src/modules/booking/components/PlayersSelector.tsx    (new)
+src/modules/booking/components/DateStrip.tsx           (edited)
+src/modules/booking/components/SlotGrid.tsx            (edited)
+src/modules/booking/components/Durationselector.tsx    (edited)
+src/modules/booking/components/ReviewSheet.tsx          (edited)
+src/modules/booking/components/ConfirmationScreen.tsx   (edited)# billiards-lounge
