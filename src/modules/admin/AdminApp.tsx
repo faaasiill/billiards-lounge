@@ -7,6 +7,8 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import AdminsPage from "./pages/AdminsPage";
+import ActivitiesPage from "./pages/ActivitiesPage";
+import SettingsPage from "./pages/SettingsPage";
 import { ALL_NAV_ITEMS } from "./config/navigation";
 
 /**
@@ -16,6 +18,8 @@ import { ALL_NAV_ITEMS } from "./config/navigation";
 const PAGES: Record<string, ComponentType> = {
   dashboard: DashboardPage,
   admins: AdminsPage,
+  activities: ActivitiesPage,
+  settings: SettingsPage,
 };
 
 const AdminRoutes = () => {

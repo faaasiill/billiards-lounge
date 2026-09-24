@@ -48,7 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: "bookings", label: "Bookings", path: "/admin/bookings", icon: CalendarIcon, comingSoon: true },
       { id: "customers", label: "Customers", path: "/admin/customers", icon: UsersIcon, comingSoon: true },
-      { id: "activities", label: "Activities & Tables", path: "/admin/activities", icon: TableIcon, comingSoon: true },
+      { id: "activities", label: "Activities & Tables", path: "/admin/activities", icon: TableIcon },
       { id: "pricing", label: "Pricing", path: "/admin/pricing", icon: TagIcon, comingSoon: true },
     ],
   },
@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Insights",
     items: [
       { id: "analytics", label: "Analytics", path: "/admin/analytics", icon: ChartIcon, comingSoon: true },
-      { id: "settings", label: "Settings", path: "/admin/settings", icon: SettingsIcon, comingSoon: true },
+      { id: "settings", label: "Settings", path: "/admin/settings", icon: SettingsIcon },
     ],
   },
 ];
