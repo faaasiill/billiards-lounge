@@ -50,3 +50,21 @@ export interface BookingDraft {
   players: number | null;
   customer: CustomerDetails | null;
 }
+
+/**
+ * A finalized, confirmed booking — what gets stored in history once
+ * ConfirmationScreen shows a booking ID. Distinct from BookingDraft
+ * (which holds nullable in-progress selections): every field here is
+ * required because a booking can't be confirmed until all of them exist.
+ */
+export interface Booking {
+  id: string; // the short booking ID shown on ConfirmationScreen (e.g. "A3F9K2")
+  activity: Activity;
+  date: DateOption;
+  slot: TimeSlot;
+  duration: DurationOption;
+  players: number;
+  customer: CustomerDetails;
+  total: number;
+  createdAt: string; // ISO timestamp, for ordering history newest-first
+}

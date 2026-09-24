@@ -17,6 +17,9 @@ type NavbarProps = {
 
   /** Opens the booking flow from the dropdown. */
   onBookNow?: () => void;
+
+  /** Opens the My Bookings page from the dropdown. Omit to hide the link. */
+  onMyBookings?: () => void;
 };
 
 const NAV_LINKS = ["About Us", "Contact Us", "Location"];
@@ -45,6 +48,13 @@ const MoonIcon = () => (
   </svg>
 );
 
+const TicketIcon = () => (
+  <svg {...iconProps}>
+    <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z" />
+    <path d="M13 6v2M13 16v2M13 11v2" />
+  </svg>
+);
+
 const BackIcon = () => (
   <svg
     width="16"
@@ -69,6 +79,7 @@ const Navbar = ({
   onBack,
   title,
   onBookNow,
+  onMyBookings,
 }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -219,6 +230,22 @@ const Navbar = ({
                   </button>
                 ))}
 
+                {/* My Bookings */}
+                {onMyBookings && (
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      onMyBookings();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-full px-4 py-2.5 text-left text-sm tracking-tight text-ivory transition-colors active:bg-ivory/10 light:text-felt-dark light:active:bg-felt-dark/10"
+                  >
+                    <span className="flex h-4 w-4 items-center justify-center opacity-70">
+                      <TicketIcon />
+                    </span>
+                    My Bookings
+                  </button>
+                )}
+
                 {/* Theme toggle */}
                 <button
                   onClick={toggleTheme}
@@ -246,15 +273,17 @@ const Navbar = ({
                 </button>
 
                 {/* Book Now */}
-                <button
-                  onClick={() => {
-                    closeMenu();
-                    onBookNow?.();
-                  }}
-                  className="mt-2 block w-full rounded-full bg-brass px-4 py-2.5 text-left text-sm font-medium tracking-tight text-felt-dark transition-transform active:scale-[0.98]"
-                >
-                  Book Now
-                </button>
+                {onBookNow && (
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      onBookNow();
+                    }}
+                    className="mt-2 block w-full rounded-full bg-brass px-4 py-2.5 text-left text-sm font-medium tracking-tight text-felt-dark transition-transform active:scale-[0.98]"
+                  >
+                    Book Now
+                  </button>
+                )}
               </div>
             </div>
           </>

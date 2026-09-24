@@ -12,6 +12,7 @@ import BookingBar from "./components/BookingBar";
 import { ACTIVITIES, PEAK_SURCHARGE, buildSlotsFor, dateToOption } from "./mockData";
 import type {
   Activity,
+  Booking,
   BookingDraft,
   CustomerDetails,
   DateOption,
@@ -25,6 +26,10 @@ type Sheet = "none" | "details" | "review";
 type BookingPageProps = {
   /** Called when the user taps the logo pill to leave the booking flow. */
   onExit?: () => void;
+  /** Called with the finalized booking once it's confirmed. */
+  onBookingConfirmed?: (booking: Booking) => void;
+  /** Navigates to the My Bookings page — surfaced as a button on the confirmation screen. */
+  onViewBookings?: () => void;
 };
 
 /**
@@ -61,7 +66,7 @@ const SectionCard = ({ children, delayMs }: { children: ReactNode; delayMs: numb
   </div>
 );
 
-const BookingPage = ({ onExit }: BookingPageProps) => {
+const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPageProps) => {
   const [stage, setStage] = useState<Stage>("activities");
   const [sheet, setSheet] = useState<Sheet>("none");
   const [activity, setActivity] = useState<Activity | null>(null);
@@ -106,7 +111,24 @@ const BookingPage = ({ onExit }: BookingPageProps) => {
 
   const handleConfirm = () => {
     // TODO: replace with a real booking API call; keep the same draft shape.
-    setBookingId(Math.random().toString(36).slice(2, 8).toUpperCase());
+    if (!activity || !date || !slot || !duration || !players || !customer) return;
+
+    const id = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const finalTotal = duration.price + (slot.isPeak ? PEAK_SURCHARGE : 0);
+
+    onBookingConfirmed?.({
+      id,
+      activity,
+      date,
+      slot,
+      duration,
+      players,
+      customer,
+      total: finalTotal,
+      createdAt: new Date().toISOString(),
+    });
+
+    setBookingId(id);
     setSheet("none");
     setStage("confirmation");
   };
@@ -124,9 +146,9 @@ const BookingPage = ({ onExit }: BookingPageProps) => {
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden">
-        {stage === "activities" && <Navbar onBrandClick={onExit} />}
+        {stage === "activities" && <Navbar onBrandClick={onExit} onMyBookings={onViewBookings} />}
         {stage === "schedule" && activity && (
-          <Navbar onBack={() => setStage("activities")} title={activity.name} />
+          <Navbar onBack={() => setStage("activities")} title={activity.name} onMyBookings={onViewBookings} />
         )}
 
         {stage === "activities" && (
@@ -224,7 +246,12 @@ const BookingPage = ({ onExit }: BookingPageProps) => {
         )}
 
         {stage === "confirmation" && (
-          <ConfirmationScreen draft={draft} bookingId={bookingId} onDone={reset} />
+          <ConfirmationScreen
+            draft={draft}
+            bookingId={bookingId}
+            onDone={reset}
+            onViewBookings={onViewBookings}
+          />
         )}
 
         <CustomerDetailsSheet

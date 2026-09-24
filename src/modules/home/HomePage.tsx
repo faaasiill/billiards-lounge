@@ -3,13 +3,14 @@ import TableCardStack from "./components/TableCardStack";
 
 type HomePageProps = {
   onReserve: () => void;
+  onMyBookings?: () => void;
 };
 
-const HomePage = ({ onReserve }: HomePageProps) => {
+const HomePage = ({ onReserve, onMyBookings }: HomePageProps) => {
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden ">
-        <Navbar onBookNow={onReserve} />
+        <Navbar onBookNow={onReserve} onMyBookings={onMyBookings} />
 
         {/* Hero */}
         <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
