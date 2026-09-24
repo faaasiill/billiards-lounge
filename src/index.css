@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --color-felt: #123328;
+  --color-felt-dark: #0b241c;
+  --color-felt-red: #5b2334;
+  --color-felt-blue: #1f3a5f;
+  --color-ivory: #f3ecdd;
+  --color-brass: #c9a24b;
+  --color-sage: #8fae9e;
+
+  /* Light-mode-only tones: a page background distinct from the ivory chip
+     color (so chips still stand out), and a darker sage for legible
+     borders/text on a light background. */
+  --color-cream: #f6f1e4;
+  --color-sage-dark: #4f6a5c;
+}
+
+/*
+  Custom variant for our own light/dark toggle (data-theme on the page
+  root), mirroring how Tailwind's built-in `dark:` works but keyed to our
+  attribute instead of prefers-color-scheme. Usage: `light:bg-cream`.
+  The design defaults to dark (the original palette); `light:` classes
+  override it when data-theme="light" is set.
+*/
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+html,
+body,
+#root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+/*
+  Shared micro-interaction keyframes. Kept small and purposeful — entrance
+  transitions for sections/cards/sheets, and a single "pop" used for
+  confirmation states. Referenced via Tailwind arbitrary values, e.g.
+  `animate-[fade-slide-up_360ms_ease-out]`.
+*/
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
