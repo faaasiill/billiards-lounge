@@ -12,6 +12,7 @@ import SettingsPage from "./pages/SettingsPage";
 import BookingsPage from "./pages/BookingsPage";
 import CustomersPage from "./pages/CustomersPage";
 import CustomerDetailsPage from "./pages/CustomerDetailsPage";
+import AnalyticsPage from "./pages/Analyticspage";
 import { ALL_NAV_ITEMS } from "./config/navigation";
 
 /**
@@ -24,6 +25,7 @@ const PAGES: Record<string, ComponentType> = {
   bookings: BookingsPage,
   customers: CustomersPage,
   activities: ActivitiesPage,
+  analytics: AnalyticsPage,
   settings: SettingsPage,
 };
 
@@ -37,11 +39,7 @@ const AdminRoutes = () => {
   if (customerId) {
     return (
       <ProtectedRoute>
-        <AdminLayout
-          title="Customer"
-          currentPath="/admin/customers"
-          onNavigate={navigate}
-        >
+        <AdminLayout title="Customer" currentPath="/admin/customers" onNavigate={navigate}>
           {/* key forces a fresh load when moving between two customers */}
           <CustomerDetailsPage key={customerId} customerId={customerId} />
         </AdminLayout>
