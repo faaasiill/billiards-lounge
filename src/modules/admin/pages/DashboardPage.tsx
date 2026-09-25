@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { useAdminRoute } from "../hooks/useAdminRoute";
 import { useNow } from "../hooks/useNow";
-import { getDashboardSnapshot, type DashboardSnapshot } from "../services/dashboardservice";
+import { getDashboardSnapshot, type DashboardSnapshot } from "../services/dashboardService";
 import { customerKeyOf } from "../services/bookingsService";
 import { formatCurrency, formatTime, humanizeMinutes } from "../lib/bookingTime";
-import { DashboardSkeleton } from "../components/Dashboardskeletons";
+import { DashboardSkeleton } from "../components/DashboardSkeletons";
 import ErrorState from "../components/ErrorState";
 import EmptyState from "../components/EmptyState";
 import {

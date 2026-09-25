@@ -4,9 +4,9 @@ import {
   WEEKDAY_LABELS,
   type AnalyticsSummary,
   type RangeDays,
-} from "../services/analyticsservice";
+} from "../services/analyticsService";
 import { formatCurrency, humanizeMinutes } from "../lib/bookingTime";
-import { AnalyticsSkeleton } from "../components/Dashboardskeletons";
+import { AnalyticsSkeleton } from "../components/DashboardSkeletons";
 import ErrorState from "../components/ErrorState";
 import EmptyState from "../components/EmptyState";
 
