@@ -12,7 +12,7 @@ import SettingsPage from "./pages/SettingsPage";
 import BookingsPage from "./pages/BookingsPage";
 import CustomersPage from "./pages/CustomersPage";
 import CustomerDetailsPage from "./pages/CustomerDetailsPage";
-import AnalyticsPage from "./pages/Analyticspage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import { ALL_NAV_ITEMS } from "./config/navigation";
 
 /**
