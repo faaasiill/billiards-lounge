@@ -4,6 +4,7 @@ import EmptyBookings from "./components/EmptyBookings";
 import { BookingCardSkeleton } from "../booking/components/Skeleton";
 import StateCard, { AlertIcon } from "../booking/components/StateCard";
 import type { Booking } from "../booking/types";
+import type { InfoPage } from "../info/types";
 
 type MyBookingsPageProps = {
   bookings: Booking[];
@@ -16,6 +17,8 @@ type MyBookingsPageProps = {
   onBack: () => void;
   /** Jump straight into the booking flow — used by the empty state. */
   onStartBooking: () => void;
+  /** Navigates to About / Contact / Location from the menu. */
+  onNavigate?: (page: InfoPage) => void;
 };
 
 /**
@@ -31,11 +34,17 @@ const MyBookingsPage = ({
   onRetry,
   onBack,
   onStartBooking,
+  onNavigate,
 }: MyBookingsPageProps) => {
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden">
-        <Navbar onBack={onBack} title="My Bookings" onBookNow={onStartBooking} />
+        <Navbar
+          onBack={onBack}
+          title="My Bookings"
+          onBookNow={onStartBooking}
+          onNavigate={onNavigate}
+        />
 
         {!loggedIn ? (
           <EmptyBookings

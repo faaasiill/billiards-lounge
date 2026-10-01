@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import logo from "../../../assets/logo design1.png";
 import { useTheme } from "../../../context/ThemeContext";
 import { useCustomerSession } from "../../booking/hooks/useCustomerSession";
+import type { InfoPage } from "../../info/types";
 
 type NavbarProps = {
   /** Brand-pill mode: shown on the homepage and top of the booking flow. */
@@ -21,9 +22,16 @@ type NavbarProps = {
 
   /** Opens the My Bookings page from the dropdown. Omit to hide the link. */
   onMyBookings?: () => void;
+
+  /** Navigates to one of the static info pages (About / Contact / Location). */
+  onNavigate?: (page: InfoPage) => void;
 };
 
-const NAV_LINKS = ["About Us", "Contact Us", "Location"];
+const NAV_LINKS: { label: string; page: InfoPage }[] = [
+  { label: "About Us", page: "about" },
+  { label: "Contact Us", page: "contact" },
+  { label: "Location", page: "location" },
+];
 
 const iconProps = {
   width: 15,
@@ -81,6 +89,7 @@ const Navbar = ({
   title,
   onBookNow,
   onMyBookings,
+  onNavigate,
 }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -207,10 +216,13 @@ const Navbar = ({
             >
               <div className="p-3">
                 {/* Navigation links */}
-                {NAV_LINKS.map((label) => (
+                {NAV_LINKS.map(({ label, page }) => (
                   <button
-                    key={label}
-                    onClick={closeMenu}
+                    key={page}
+                    onClick={() => {
+                      closeMenu();
+                      onNavigate?.(page);
+                    }}
                     className="block w-full rounded-full px-4 py-2.5 text-left text-sm tracking-tight text-ivory transition-colors active:bg-ivory/10 light:text-felt-dark light:active:bg-felt-dark/10"
                   >
                     {label}

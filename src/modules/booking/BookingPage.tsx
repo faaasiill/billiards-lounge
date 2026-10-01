@@ -18,6 +18,7 @@ import { getActivityAvailability, createBooking } from "./services/availabilityS
 import { getClubSchedule, type ClubSchedule } from "./services/clubScheduleService";
 import { getDateOpenState } from "../../lib/clubHours";
 import { useCustomerSession } from "./hooks/useCustomerSession";
+import type { InfoPage } from "../info/types";
 import type {
   Activity,
   Booking,
@@ -38,6 +39,8 @@ type BookingPageProps = {
   onBookingConfirmed?: (booking: Booking) => void;
   /** Navigates to the My Bookings page — surfaced as a button on the confirmation screen. */
   onViewBookings?: () => void;
+  /** Navigates to About / Contact / Location from the menu. */
+  onNavigate?: (page: InfoPage) => void;
 };
 
 /** Club-local peak window (hard-coded for now; move into club_settings later). */
@@ -94,7 +97,7 @@ const StatePanel = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
-const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPageProps) => {
+const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }: BookingPageProps) => {
   const { session, login } = useCustomerSession();
 
   const [stage, setStage] = useState<Stage>("activities");
@@ -368,7 +371,9 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden">
-        {stage === "activities" && <Navbar onBrandClick={onExit} onMyBookings={onViewBookings} />}
+        {stage === "activities" && (
+          <Navbar onBrandClick={onExit} onMyBookings={onViewBookings} onNavigate={onNavigate} />
+        )}
         {stage === "variants" && group && (
           <Navbar
             onBack={() => {
@@ -377,6 +382,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
             }}
             title={group.name}
             onMyBookings={onViewBookings}
+            onNavigate={onNavigate}
           />
         )}
         {stage === "schedule" && activity && (
@@ -384,6 +390,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
             onBack={() => setStage(group ? "variants" : "activities")}
             title={activity.name}
             onMyBookings={onViewBookings}
+            onNavigate={onNavigate}
           />
         )}
 

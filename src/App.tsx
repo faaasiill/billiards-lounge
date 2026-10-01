@@ -2,15 +2,19 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import HomePage from "./modules/home";
 import BookingPage from "./modules/booking";
 import MyBookingsPage from "./modules/mybookings";
+import AboutPage from "./modules/about";
+import ContactPage from "./modules/contact";
+import LocationPage from "./modules/location";
 import { ThemeProvider } from "./context/ThemeContext";
 import { isAdminPath } from "./modules/admin/hooks/useAdminRoute";
 import { useCustomerSession } from "./modules/booking/hooks/useCustomerSession";
 import { listBookingsByPhone } from "./modules/booking/services/userBookingsService";
 import type { Booking } from "./modules/booking/types";
+import type { InfoPage } from "./modules/info/types";
 
 const AdminApp = lazy(() => import("./modules/admin"));
 
-type View = "home" | "booking" | "myBookings";
+type View = "home" | "booking" | "myBookings" | InfoPage;
 
 const App = () => {
   const [view, setView] = useState<View>("home");
@@ -52,6 +56,11 @@ const App = () => {
     }
   }, [view, refreshBookings]);
 
+  const goHome = () => setView("home");
+  const goBooking = () => setView("booking");
+  const goMyBookings = () => setView("myBookings");
+  const goInfo = (page: InfoPage) => setView(page);
+
   if (adminRoute) {
     return (
       <Suspense
@@ -69,15 +78,16 @@ const App = () => {
   return (
     <ThemeProvider>
       {view === "home" && (
-        <HomePage onReserve={() => setView("booking")} onMyBookings={() => setView("myBookings")} />
+        <HomePage onReserve={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
       )}
 
       {view === "booking" && (
         <BookingPage
-          onExit={() => setView("home")}
+          onExit={goHome}
           // The database is the source of truth now; My Bookings refetches when opened.
           onBookingConfirmed={() => {}}
-          onViewBookings={() => setView("myBookings")}
+          onViewBookings={goMyBookings}
+          onNavigate={goInfo}
         />
       )}
 
@@ -88,8 +98,36 @@ const App = () => {
           error={bookingsError}
           loggedIn={Boolean(session)}
           onRetry={() => void refreshBookings()}
-          onBack={() => setView("home")}
-          onStartBooking={() => setView("booking")}
+          onBack={goHome}
+          onStartBooking={goBooking}
+          onNavigate={goInfo}
+        />
+      )}
+
+      {view === "about" && (
+        <AboutPage
+          onBack={goHome}
+          onStartBooking={goBooking}
+          onMyBookings={goMyBookings}
+          onNavigate={goInfo}
+        />
+      )}
+
+      {view === "contact" && (
+        <ContactPage
+          onBack={goHome}
+          onStartBooking={goBooking}
+          onMyBookings={goMyBookings}
+          onNavigate={goInfo}
+        />
+      )}
+
+      {view === "location" && (
+        <LocationPage
+          onBack={goHome}
+          onStartBooking={goBooking}
+          onMyBookings={goMyBookings}
+          onNavigate={goInfo}
         />
       )}
     </ThemeProvider>

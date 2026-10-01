@@ -1,16 +1,18 @@
 import Navbar from "./components/Navbar";
 import TableCardStack from "./components/TableCardStack";
+import type { InfoPage } from "../info/types";
 
 type HomePageProps = {
   onReserve: () => void;
   onMyBookings?: () => void;
+  onNavigate?: (page: InfoPage) => void;
 };
 
-const HomePage = ({ onReserve, onMyBookings }: HomePageProps) => {
+const HomePage = ({ onReserve, onMyBookings, onNavigate }: HomePageProps) => {
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden ">
-        <Navbar onBookNow={onReserve} onMyBookings={onMyBookings} />
+        <Navbar onBookNow={onReserve} onMyBookings={onMyBookings} onNavigate={onNavigate} />
 
         {/* Hero */}
         <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
