@@ -1,50 +1,88 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   getClubSettings,
   updateClubSettings,
+  getClubHours,
+  updateClubHours,
   listClosures,
   addClosure,
   removeClosure,
-  type ClubSettingsRecord,
   type ClubClosure,
 } from "../services/settingsService";
+import {
+  DEFAULT_HOURS,
+  WEEKDAY_NAMES,
+  WEEK_ORDER,
+  closesAfterMidnight,
+  describeHours,
+  toMinutes,
+  type DayHours,
+} from "../../../lib/clubHours";
 import Spinner from "../components/Spinner";
 import ErrorState from "../components/ErrorState";
 import EmptyState from "../components/EmptyState";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:opacity-60";
+  "w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 disabled:opacity-70";
 
 const labelClass = "mb-1.5 block text-xs font-medium text-neutral-700";
 
-const WEEKDAYS = [
-  { value: 0, label: "Sun" },
-  { value: 1, label: "Mon" },
-  { value: 2, label: "Tue" },
-  { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" },
-  { value: 5, label: "Fri" },
-  { value: 6, label: "Sat" },
-];
-
 const formatDate = (iso: string) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+const Toggle = ({
+  checked,
+  onChange,
+  disabled,
+  label,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+      checked ? "bg-emerald-600" : "bg-neutral-300"
+    }`}
+  >
+    <span
+      className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+        checked ? "translate-x-5" : "translate-x-0.5"
+      }`}
+    />
+  </button>
+);
 
 const SettingsPage = () => {
-  const [settings, setSettings] = useState<ClubSettingsRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [openTime, setOpenTime] = useState("10:00");
-  const [closeTime, setCloseTime] = useState("22:00");
-  const [offDays, setOffDays] = useState<number[]>([]);
+  /* ---- weekly schedule ---- */
+  const [hours, setHours] = useState<DayHours[]>(DEFAULT_HOURS);
+  const [savedHours, setSavedHours] = useState<DayHours[]>(DEFAULT_HOURS);
+  const [savingHours, setSavingHours] = useState(false);
+  const [hoursError, setHoursError] = useState<string | null>(null);
+  const [hoursSuccess, setHoursSuccess] = useState(false);
+
+  /* ---- general settings ---- */
   const [bufferMinutes, setBufferMinutes] = useState(10);
   const [defaultDuration, setDefaultDuration] = useState(60);
+  const [savingGeneral, setSavingGeneral] = useState(false);
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [generalSuccess, setGeneralSuccess] = useState(false);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-
+  /* ---- closures ---- */
   const [closures, setClosures] = useState<ClubClosure[]>([]);
   const [closuresLoading, setClosuresLoading] = useState(true);
   const [closureStart, setClosureStart] = useState("");
@@ -58,16 +96,17 @@ const SettingsPage = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await getClubSettings();
-    if (data) {
-      setSettings(data);
-      setOpenTime(data.open_time);
-      setCloseTime(data.close_time);
-      setOffDays(data.weekly_off_days);
-      setBufferMinutes(data.cleanup_buffer_minutes);
-      setDefaultDuration(data.default_duration_minutes);
+
+    const [settingsRes, hoursRes] = await Promise.all([getClubSettings(), getClubHours()]);
+
+    if (settingsRes.data) {
+      setBufferMinutes(settingsRes.data.cleanup_buffer_minutes);
+      setDefaultDuration(settingsRes.data.default_duration_minutes);
     }
-    setLoadError(error);
+    setHours(hoursRes.data);
+    setSavedHours(hoursRes.data);
+
+    setLoadError(settingsRes.error ?? hoursRes.error);
     setLoading(false);
   }, []);
 
@@ -84,35 +123,74 @@ const SettingsPage = () => {
     void loadClosures();
   }, [load, loadClosures]);
 
-  const toggleOffDay = (day: number) => {
-    setOffDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
+  const hoursDirty = useMemo(
+    () => JSON.stringify(hours) !== JSON.stringify(savedHours),
+    [hours, savedHours],
+  );
+
+  const updateDay = (weekday: number, patch: Partial<DayHours>) => {
+    setHoursSuccess(false);
+    setHours((prev) => prev.map((d) => (d.weekday === weekday ? { ...d, ...patch } : d)));
   };
 
-  const handleSaveSettings = async (e: FormEvent) => {
-    e.preventDefault();
-    if (saving) return;
+  const copyDayTo = (sourceWeekday: number, targets: number[]) => {
+    const source = hours.find((d) => d.weekday === sourceWeekday);
+    if (!source) return;
+    setHoursSuccess(false);
+    setHours((prev) =>
+      prev.map((d) =>
+        targets.includes(d.weekday)
+          ? { ...d, is_open: source.is_open, open_time: source.open_time, close_time: source.close_time }
+          : d,
+      ),
+    );
+  };
 
-    setSaving(true);
-    setSaveError(null);
-    setSaveSuccess(false);
+  const dayError = (day: DayHours): string | null => {
+    if (!day.is_open) return null;
+    if (!day.open_time || !day.close_time) return "Set both an opening and a closing time.";
+    if (toMinutes(day.open_time) === toMinutes(day.close_time))
+      return "Opening and closing time can't be the same.";
+    return null;
+  };
+
+  const hasHoursErrors = hours.some((d) => dayError(d) !== null);
+
+  const handleSaveHours = async () => {
+    if (savingHours || hasHoursErrors) return;
+    setSavingHours(true);
+    setHoursError(null);
+    setHoursSuccess(false);
+
+    const { error } = await updateClubHours(hours);
+    setSavingHours(false);
+
+    if (error) {
+      setHoursError(error);
+      return;
+    }
+    setSavedHours(hours);
+    setHoursSuccess(true);
+  };
+
+  const handleSaveGeneral = async (e: FormEvent) => {
+    e.preventDefault();
+    if (savingGeneral) return;
+    setSavingGeneral(true);
+    setGeneralError(null);
+    setGeneralSuccess(false);
 
     const { error } = await updateClubSettings({
-      open_time: openTime,
-      close_time: closeTime,
-      weekly_off_days: offDays,
       cleanup_buffer_minutes: bufferMinutes,
       default_duration_minutes: defaultDuration,
     });
 
-    setSaving(false);
-
+    setSavingGeneral(false);
     if (error) {
-      setSaveError(error);
+      setGeneralError(error);
       return;
     }
-
-    setSaveSuccess(true);
-    void load();
+    setGeneralSuccess(true);
   };
 
   const handleAddClosure = async (e: FormEvent) => {
@@ -135,7 +213,6 @@ const SettingsPage = () => {
     });
 
     setAddingClosure(false);
-
     if (error) {
       setClosureError(error);
       return;
@@ -166,10 +243,10 @@ const SettingsPage = () => {
     );
   }
 
-  if (loadError || !settings) {
+  if (loadError) {
     return (
       <ErrorState
-        description={loadError ?? "Couldn't load settings."}
+        description={`${loadError} If you haven't yet, run supabase/001_club_hours.sql in the Supabase SQL Editor.`}
         action={
           <button
             onClick={() => void load()}
@@ -187,69 +264,167 @@ const SettingsPage = () => {
       <section>
         <h2 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">Settings</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Club-wide working hours and buffer time. Changes apply immediately to future availability.
+          Opening hours for each day of the week, buffer time, and holidays. Changes apply immediately to
+          future availability.
         </p>
       </section>
 
-      {/* Working hours + buffer */}
+      {/* ---------------- Weekly schedule ---------------- */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-neutral-900">Working hours & buffer</h3>
-
-        <form onSubmit={(e) => void handleSaveSettings(e)} noValidate className="mt-4 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="open-time" className={labelClass}>
-                Opens at
-              </label>
-              <input
-                id="open-time"
-                type="time"
-                value={openTime}
-                onChange={(e) => setOpenTime(e.target.value)}
-                disabled={saving}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="close-time" className={labelClass}>
-                Closes at
-              </label>
-              <input
-                id="close-time"
-                type="time"
-                value={closeTime}
-                onChange={(e) => setCloseTime(e.target.value)}
-                disabled={saving}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <span className={labelClass}>Weekly off days</span>
-            <div className="flex flex-wrap gap-2">
-              {WEEKDAYS.map((day) => {
-                const selected = offDays.includes(day.value);
-                return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => toggleOffDay(day.value)}
-                    disabled={saving}
-                    aria-pressed={selected}
-                    className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                      selected
-                        ? "bg-neutral-900 text-white"
-                        : "border border-neutral-200 text-neutral-600 hover:bg-neutral-50"
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                );
-              })}
-            </div>
+            <h3 className="text-sm font-medium text-neutral-900">Weekly schedule</h3>
+            <p className="mt-1 text-xs text-neutral-500">
+              Each day has its own hours. Turn a day off to close it completely, with no bookings possible.
+            </p>
           </div>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => copyDayTo(1, [2, 3, 4, 5])}
+              disabled={savingHours}
+              className="rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+            >
+              Copy Mon → Tue–Fri
+            </button>
+            <button
+              type="button"
+              onClick={() => copyDayTo(1, [0, 2, 3, 4, 5, 6])}
+              disabled={savingHours}
+              className="rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+            >
+              Copy Mon → all
+            </button>
+          </div>
+        </div>
 
+        <ul className="mt-4 flex flex-col gap-2.5">
+          {WEEK_ORDER.map((weekday) => {
+            const day = hours.find((d) => d.weekday === weekday) ?? DEFAULT_HOURS[weekday];
+            const name = WEEKDAY_NAMES[weekday];
+            const error = dayError(day);
+
+            return (
+              <li
+                key={weekday}
+                className={`rounded-xl border p-3.5 transition-colors ${
+                  day.is_open ? "border-neutral-200 bg-white" : "border-neutral-200 bg-neutral-50"
+                }`}
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+                  <div className="flex items-center justify-between gap-3 lg:w-56">
+                    <div className="flex items-center gap-3">
+                      <Toggle
+                        checked={day.is_open}
+                        onChange={(value) => updateDay(weekday, { is_open: value })}
+                        disabled={savingHours}
+                        label={`${name} open`}
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">{name}</p>
+                        <p
+                          className={`text-xs ${day.is_open ? "text-emerald-700" : "text-neutral-400"}`}
+                        >
+                          {day.is_open ? "Open" : "Closed"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid flex-1 grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`open-${weekday}`} className={labelClass}>
+                        Opening time
+                      </label>
+                      <input
+                        id={`open-${weekday}`}
+                        type="time"
+                        value={day.open_time}
+                        onChange={(e) => updateDay(weekday, { open_time: e.target.value })}
+                        disabled={savingHours || !day.is_open}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`close-${weekday}`} className={labelClass}>
+                        Closing time
+                      </label>
+                      <input
+                        id={`close-${weekday}`}
+                        type="time"
+                        value={day.close_time}
+                        onChange={(e) => updateDay(weekday, { close_time: e.target.value })}
+                        disabled={savingHours || !day.is_open}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="lg:w-48 lg:text-right">
+                    <p className="text-sm font-medium text-neutral-900">{describeHours(day)}</p>
+                    {closesAfterMidnight(day) && (
+                      <p className="text-[11px] text-neutral-500">Closes after midnight</p>
+                    )}
+                  </div>
+                </div>
+
+                {error && (
+                  <p role="alert" className="mt-2 text-xs text-red-600">
+                    {error}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-3 text-xs text-neutral-500">
+          For midnight, set the closing time to 12:00 AM. A closing time earlier than the opening time means
+          the shop stays open past midnight.
+        </p>
+
+        {hoursError && (
+          <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {hoursError}
+          </p>
+        )}
+        {hoursSuccess && (
+          <p
+            role="status"
+            className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+          >
+            Weekly schedule saved.
+          </p>
+        )}
+
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleSaveHours()}
+            disabled={savingHours || !hoursDirty || hasHoursErrors}
+            className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {savingHours && <Spinner />}
+            {savingHours ? "Saving…" : "Save schedule"}
+          </button>
+          {hoursDirty && !savingHours && <span className="text-xs text-amber-600">Unsaved changes</span>}
+          {hoursDirty && !savingHours && (
+            <button
+              type="button"
+              onClick={() => setHours(savedHours)}
+              className="text-xs font-medium text-neutral-500 hover:text-neutral-800"
+            >
+              Discard
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* ---------------- General settings ---------------- */}
+      <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+        <h3 className="text-sm font-medium text-neutral-900">Buffer & defaults</h3>
+
+        <form onSubmit={(e) => void handleSaveGeneral(e)} noValidate className="mt-4 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="buffer-minutes" className={labelClass}>
@@ -260,8 +435,11 @@ const SettingsPage = () => {
                 type="number"
                 min={0}
                 value={bufferMinutes}
-                onChange={(e) => setBufferMinutes(Math.max(0, Number(e.target.value) || 0))}
-                disabled={saving}
+                onChange={(e) => {
+                  setGeneralSuccess(false);
+                  setBufferMinutes(Math.max(0, Number(e.target.value) || 0));
+                }}
+                disabled={savingGeneral}
                 className={inputClass}
               />
               <p className="mt-1 text-xs text-neutral-500">
@@ -277,20 +455,23 @@ const SettingsPage = () => {
                 type="number"
                 min={1}
                 value={defaultDuration}
-                onChange={(e) => setDefaultDuration(Math.max(1, Number(e.target.value) || 1))}
-                disabled={saving}
+                onChange={(e) => {
+                  setGeneralSuccess(false);
+                  setDefaultDuration(Math.max(1, Number(e.target.value) || 1));
+                }}
+                disabled={savingGeneral}
                 className={inputClass}
               />
               <p className="mt-1 text-xs text-neutral-500">Used when a customer hasn't chosen a duration yet.</p>
             </div>
           </div>
 
-          {saveError && (
+          {generalError && (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {saveError}
+              {generalError}
             </p>
           )}
-          {saveSuccess && (
+          {generalSuccess && (
             <p
               role="status"
               className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
@@ -301,26 +482,26 @@ const SettingsPage = () => {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={savingGeneral}
             className="flex items-center justify-center gap-2 self-start rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving && <Spinner />}
-            {saving ? "Saving…" : "Save settings"}
+            {savingGeneral && <Spinner />}
+            {savingGeneral ? "Saving…" : "Save settings"}
           </button>
         </form>
       </section>
 
-      {/* Closures */}
+      {/* ---------------- Closures ---------------- */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
         <h3 className="text-sm font-medium text-neutral-900">Leave & holiday dates</h3>
         <p className="mt-1 text-xs text-neutral-500">
-          Specific closed date ranges, on top of the weekly off days above.
+          Specific closed date ranges, on top of the days switched off in the weekly schedule.
         </p>
 
         <form
           onSubmit={(e) => void handleAddClosure(e)}
           noValidate
-          className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap"
+          className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
         >
           <div>
             <label htmlFor="closure-start" className={labelClass}>
@@ -348,7 +529,7 @@ const SettingsPage = () => {
               className={inputClass}
             />
           </div>
-          <div className="flex-1 min-w-40">
+          <div className="min-w-40 flex-1">
             <label htmlFor="closure-reason" className={labelClass}>
               Reason
             </label>

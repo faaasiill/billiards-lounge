@@ -14,7 +14,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   already_admin: "That user is already an admin.",
   cannot_remove_self: "You can't remove your own admin access.",
   last_admin: "You can't remove the last remaining admin.",
-  email_exists: "An account with that email already exists. Use \"Add admin\" instead.",
+  email_exists: "An account with that email already exists. Use \"Grant to existing account\" instead.",
   weak_password: "Password must be at least 8 characters.",
 };
 
@@ -34,7 +34,7 @@ export const listAdmins = async (): Promise<{ data: AdminRecord[]; error: string
   return { data: (data ?? []) as AdminRecord[], error: null };
 };
 
-/** Grants admin access to an EXISTING user account by email (unchanged flow). */
+/** Grants admin access to an EXISTING user account by email. */
 export const addAdminByEmail = async (email: string): Promise<{ error: string | null }> => {
   const { error } = await supabase.rpc("add_admin_by_email", { target_email: email });
   return { error: error ? toMessage(error.message) : null };
@@ -46,15 +46,9 @@ export const removeAdmin = async (userId: string): Promise<{ error: string | nul
 };
 
 /**
- * Creates a BRAND NEW user account and grants it admin access in one step,
- * so an authorized admin never has to touch the Supabase dashboard.
- *
- * This calls the `create-admin` Supabase Edge Function, which is the only
- * place allowed to use the service-role key (creating auth users requires
- * elevated privileges the browser must never hold). The function itself
- * re-verifies — via the caller's JWT — that the requester is already an
- * admin before creating anything, so a non-admin calling this endpoint
- * directly gets rejected server-side regardless of what the UI shows.
+ * Creates a BRAND NEW user and grants admin access in one step.
+ * Uses the `create_admin_account` database function (supabase/003_create_admin_rpc.sql),
+ * which checks is_admin() server-side, so non-admins are rejected regardless of the UI.
  */
 export const createAdminAccount = async (
   email: string,
@@ -67,25 +61,11 @@ export const createAdminAccount = async (
 
   if (!session) return { error: "Your session has expired. Please sign in again." };
 
-  const { data, error } = await supabase.functions.invoke("create-admin", {
-    body: { email, password, full_name: fullName ?? null },
+  const { error } = await supabase.rpc("create_admin_account", {
+    target_email: email,
+    target_password: password,
+    target_full_name: fullName ?? null,
   });
 
-  if (error) {
-    // FunctionsHttpError carries the response body separately; try to surface it.
-    const context = (error as { context?: { json?: () => Promise<{ error?: string }> } }).context;
-    if (context?.json) {
-      try {
-        const body = await context.json();
-        return { error: toMessage(body?.error) };
-      } catch {
-        // fall through to generic message below
-      }
-    }
-    return { error: toMessage(error.message) };
-  }
-
-  if (data?.error) return { error: toMessage(data.error) };
-
-  return { error: null };
+  return { error: error ? toMessage(error.message) : null };
 };
