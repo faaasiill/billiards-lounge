@@ -6,7 +6,15 @@ import type {
 } from "../services/activitiesService";
 import Spinner from "./Spinner";
 
+/**
+ * activity = normal bookable activity (Chess, PS5…)
+ * group    = container such as Billiards (name/description/images/visibility only)
+ * variant  = bookable game type inside a group (Snooker, 8-Ball)
+ */
+export type FormKind = "activity" | "group" | "variant";
+
 type ActivityFormProps = {
+  kind?: FormKind;
   initial?: AdminActivity | null;
   onCancel: () => void;
   onSubmit: (input: ActivityInput) => Promise<{ error: string | null }>;
@@ -41,7 +49,10 @@ const toDurationRows = (activity?: AdminActivity | null): DurationRow[] => {
 
 const emptyImageField = "";
 
-const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
+const ActivityForm = ({ kind = "activity", initial, onCancel, onSubmit }: ActivityFormProps) => {
+  const isGroup = kind === "group";
+  const isVariant = kind === "variant";
+
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(
     initial?.short_description ?? "",
@@ -56,7 +67,7 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   const [tableCount, setTableCount] = useState(initial?.table_count ?? 1);
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
   const [durations, setDurations] = useState<DurationRow[]>(
-    toDurationRows(initial),
+    isGroup ? [] : toDurationRows(initial),
   );
 
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +99,8 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
   };
 
   const validate = (): string | null => {
-    if (name.trim().length < 2) return "Enter an activity name.";
+    if (name.trim().length < 2) return "Enter a name.";
+    if (isGroup) return null;
     if (minPlayers < 1) return "Minimum players must be at least 1.";
     if (maxPlayers < minPlayers)
       return "Maximum players can't be less than minimum players.";
@@ -120,12 +132,12 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
       name: name.trim(),
       short_description: description.trim(),
       images: images.map((i) => i.trim()).filter(Boolean),
-      min_players: minPlayers,
-      max_players: maxPlayers,
+      min_players: isGroup ? 1 : minPlayers,
+      max_players: isGroup ? 1 : maxPlayers,
       is_active: isActive,
-      table_count: tableCount,
+      table_count: isGroup ? 0 : tableCount,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      durations: durations.map(({ key: _key, ...rest }) => rest),
+      durations: isGroup ? [] : durations.map(({ key: _key, ...rest }) => rest),
     });
 
     setSubmitting(false);
@@ -137,6 +149,12 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
 
     onCancel(); // close/return to list on success
   };
+
+  const namePlaceholder = isGroup
+    ? "e.g. Billiards"
+    : isVariant
+      ? "e.g. Snooker"
+      : "e.g. Chess";
 
   return (
     <form
@@ -158,7 +176,7 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={submitting}
-              placeholder="e.g. Disc Pool"
+              placeholder={namePlaceholder}
               className={inputClass}
             />
           </div>
@@ -178,61 +196,65 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="min-players" className={labelClass}>
-                Min players
-              </label>
-              <input
-                id="min-players"
-                type="number"
-                min={1}
-                value={minPlayers}
-                onChange={(e) =>
-                  setMinPlayers(Math.max(1, Number(e.target.value) || 1))
-                }
-                disabled={submitting}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="max-players" className={labelClass}>
-                Max players
-              </label>
-              <input
-                id="max-players"
-                type="number"
-                min={1}
-                value={maxPlayers}
-                onChange={(e) =>
-                  setMaxPlayers(Math.max(1, Number(e.target.value) || 1))
-                }
-                disabled={submitting}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          {!isGroup && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="min-players" className={labelClass}>
+                    Min players
+                  </label>
+                  <input
+                    id="min-players"
+                    type="number"
+                    min={1}
+                    value={minPlayers}
+                    onChange={(e) =>
+                      setMinPlayers(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    disabled={submitting}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="max-players" className={labelClass}>
+                    Max players
+                  </label>
+                  <input
+                    id="max-players"
+                    type="number"
+                    min={1}
+                    value={maxPlayers}
+                    onChange={(e) =>
+                      setMaxPlayers(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    disabled={submitting}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label htmlFor="table-count" className={labelClass}>
-              Tables / resources
-            </label>
-            <input
-              id="table-count"
-              type="number"
-              min={1}
-              value={tableCount}
-              onChange={(e) =>
-                setTableCount(Math.max(1, Number(e.target.value) || 1))
-              }
-              disabled={submitting}
-              className={inputClass}
-            />
-            <p className="mt-1 text-xs text-neutral-500">
-              Lowering this retires the highest-numbered tables rather than
-              deleting them, so past bookings stay valid.
-            </p>
-          </div>
+              <div>
+                <label htmlFor="table-count" className={labelClass}>
+                  Tables / resources
+                </label>
+                <input
+                  id="table-count"
+                  type="number"
+                  min={1}
+                  value={tableCount}
+                  onChange={(e) =>
+                    setTableCount(Math.max(1, Number(e.target.value) || 1))
+                  }
+                  disabled={submitting}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Lowering this retires the highest-numbered tables rather than
+                  deleting them, so past bookings stay valid.
+                </p>
+              </div>
+            </>
+          )}
 
           <label className="flex items-center gap-2.5 text-sm text-neutral-700">
             <input
@@ -242,7 +264,7 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
               disabled={submitting}
               className="h-4 w-4 rounded border-neutral-300"
             />
-            Visible to customers
+            {isGroup ? "Visible to customers (hides all its game types when off)" : "Visible to customers"}
           </label>
         </div>
       </section>
@@ -252,6 +274,7 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
         <h3 className="text-sm font-medium text-neutral-900">Images</h3>
         <p className="mt-1 text-xs text-neutral-500">
           Paste image URLs. The first one is used as the cover photo.
+          {isVariant && " If left empty, the group's photo is used."}
         </p>
 
         <div className="mt-4 flex flex-col gap-2.5">
@@ -289,84 +312,86 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
       </section>
 
       {/* Durations & pricing */}
-      <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-neutral-900">
-          Durations & pricing
-        </h3>
-        <p className="mt-1 text-xs text-neutral-500">
-          Removing a duration retires it instead of deleting it, so bookings
-          that already used it stay historically accurate.
-        </p>
+      {!isGroup && (
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+          <h3 className="text-sm font-medium text-neutral-900">
+            Durations & pricing
+          </h3>
+          <p className="mt-1 text-xs text-neutral-500">
+            Removing a duration retires it instead of deleting it, so bookings
+            that already used it stay historically accurate.
+          </p>
 
-        <div className="mt-4 flex flex-col gap-3">
-          {durations.map((d) => (
-            <div
-              key={d.key}
-              className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2"
-            >
-              <div>
-                <label className={labelClass}>Minutes</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={d.minutes}
-                  onChange={(e) =>
-                    updateDuration(d.key, {
-                      minutes: Math.max(1, Number(e.target.value) || 1),
-                    })
-                  }
-                  disabled={submitting}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Label</label>
-                <input
-                  value={d.label}
-                  onChange={(e) =>
-                    updateDuration(d.key, { label: e.target.value })
-                  }
-                  disabled={submitting}
-                  placeholder="e.g. 90 min"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Price (₹)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={d.price}
-                  onChange={(e) =>
-                    updateDuration(d.key, {
-                      price: Math.max(0, Number(e.target.value) || 0),
-                    })
-                  }
-                  disabled={submitting}
-                  className={inputClass}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => removeDuration(d.key)}
-                disabled={submitting || durations.length <= 1}
-                className="rounded-lg px-2.5 py-2.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 disabled:opacity-40"
+          <div className="mt-4 flex flex-col gap-3">
+            {durations.map((d) => (
+              <div
+                key={d.key}
+                className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2"
               >
-                Remove
-              </button>
-            </div>
-          ))}
+                <div>
+                  <label className={labelClass}>Minutes</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={d.minutes}
+                    onChange={(e) =>
+                      updateDuration(d.key, {
+                        minutes: Math.max(1, Number(e.target.value) || 1),
+                      })
+                    }
+                    disabled={submitting}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Label</label>
+                  <input
+                    value={d.label}
+                    onChange={(e) =>
+                      updateDuration(d.key, { label: e.target.value })
+                    }
+                    disabled={submitting}
+                    placeholder="e.g. 90 min"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Price (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={d.price}
+                    onChange={(e) =>
+                      updateDuration(d.key, {
+                        price: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    disabled={submitting}
+                    className={inputClass}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeDuration(d.key)}
+                  disabled={submitting || durations.length <= 1}
+                  className="rounded-lg px-2.5 py-2.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
 
-          <button
-            type="button"
-            onClick={addDuration}
-            disabled={submitting}
-            className="self-start rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
-          >
-            + Add duration option
-          </button>
-        </div>
-      </section>
+            <button
+              type="button"
+              onClick={addDuration}
+              disabled={submitting}
+              className="self-start rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+            >
+              + Add duration option
+            </button>
+          </div>
+        </section>
+      )}
 
       {error && (
         <p
@@ -384,11 +409,7 @@ const ActivityForm = ({ initial, onCancel, onSubmit }: ActivityFormProps) => {
           className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting && <Spinner />}
-          {submitting
-            ? "Saving…"
-            : initial
-            ? "Save changes"
-            : "Create activity"}
+          {submitting ? "Saving…" : initial ? "Save changes" : "Create"}
         </button>
         <button
           type="button"

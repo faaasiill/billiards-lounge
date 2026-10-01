@@ -17,6 +17,10 @@ export interface Activity {
   minPlayers: number; // lower bound for the players stepper
   maxPlayers: number; // upper bound for the players stepper
   durations: DurationOption[];
+  /** Set only for a group such as Billiards: its bookable game types (Snooker, 8-Ball). */
+  subcategories?: Activity[];
+  /** Set only on a game type: the name of its group (e.g. "Billiards"). */
+  groupName?: string;
 }
 
 export interface TimeSlot {

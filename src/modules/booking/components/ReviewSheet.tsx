@@ -14,7 +14,9 @@ type ReviewSheetProps = {
 
 const Row = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between py-2.5">
-    <span className="text-xs tracking-tighter text-ivory/55 light:text-felt-dark/55">{label}</span>
+    <span className="text-xs tracking-tighter text-ivory/55 light:text-felt-dark/55">
+      {label}
+    </span>
     <span className="text-sm font-medium tracking-tight text-ivory light:text-felt-dark">
       {value}
     </span>
@@ -71,15 +73,25 @@ const ReviewSheet = ({
       <div className="pb-2">
         <div className="flex items-center justify-between border-b border-ivory/10 pb-2.5 light:border-felt-dark/10">
           <span className="font-display text-base tracking-[-0.04em] text-ivory light:text-felt-dark">
-            {draft.activity.name}
+            {draft.activity.groupName
+              ? `${draft.activity.groupName} · ${draft.activity.name}`
+              : draft.activity.name}
           </span>
           <EditLink onClick={onEditSchedule} />
         </div>
 
-        <Row label="Date" value={`${draft.date.dayLabel}, ${draft.date.dayNumber} ${draft.date.monthLabel}`} />
+        <Row
+          label="Date"
+          value={`${draft.date.dayLabel}, ${draft.date.dayNumber} ${draft.date.monthLabel}`}
+        />
         <Row label="Time" value={draft.slot.label} />
         <Row label="Duration" value={draft.duration.label} />
-        <Row label="Players" value={`${draft.players} ${draft.players === 1 ? "player" : "players"}`} />
+        <Row
+          label="Players"
+          value={`${draft.players} ${
+            draft.players === 1 ? "player" : "players"
+          }`}
+        />
 
         <div className="mt-1 flex items-center justify-between border-b border-t border-ivory/10 py-2.5 light:border-felt-dark/10">
           <span className="text-xs tracking-tighter text-ivory/55 light:text-felt-dark/55">
@@ -91,13 +103,20 @@ const ReviewSheet = ({
         <Row label="Mobile" value={draft.customer.phone} />
 
         <div className="mt-1 border-t border-ivory/10 pt-2.5 light:border-felt-dark/10">
-          <Row label={`${draft.duration.label} session`} value={`₹${draft.duration.price}`} />
+          <Row
+            label={`${draft.duration.label} session`}
+            value={`₹${draft.duration.price}`}
+          />
           {surcharge > 0 && <Row label="Peak hour" value={`₹${surcharge}`} />}
         </div>
 
         <div className="mt-1 flex items-center justify-between border-t border-ivory/10 pt-3 light:border-felt-dark/10">
-          <span className="text-sm tracking-tight text-ivory/70 light:text-felt-dark/70">Total</span>
-          <span className="font-display text-lg tracking-[-0.04em] text-brass">₹{total}</span>
+          <span className="text-sm tracking-tight text-ivory/70 light:text-felt-dark/70">
+            Total
+          </span>
+          <span className="font-display text-lg tracking-[-0.04em] text-brass">
+            ₹{total}
+          </span>
         </div>
       </div>
     </BottomSheet>

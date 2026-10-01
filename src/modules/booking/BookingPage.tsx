@@ -15,13 +15,8 @@ import StateCard, { AlertIcon, ClockIcon, HourglassIcon, TableIcon } from "./com
 import { PEAK_SURCHARGE, dateToOption, buildDateOptionsFrom } from "./mockData";
 import { listPublicActivities } from "./services/activitiesPublicService";
 import { getActivityAvailability, createBooking } from "./services/availabilityService";
-import {
-  getPublicSettings,
-  listPublicClosures,
-  isClosedOn,
-  type PublicClubSettings,
-  type PublicClosure,
-} from "./services/settingsPublicService";
+import { getClubSchedule, type ClubSchedule } from "./services/clubScheduleService";
+import { getDateOpenState } from "../../lib/clubHours";
 import { useCustomerSession } from "./hooks/useCustomerSession";
 import type {
   Activity,
@@ -33,7 +28,7 @@ import type {
   TimeSlot,
 } from "./types";
 
-type Stage = "activities" | "schedule" | "confirmation";
+type Stage = "activities" | "variants" | "schedule" | "confirmation";
 type Sheet = "none" | "login" | "details" | "review";
 
 type BookingPageProps = {
@@ -109,11 +104,13 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<PublicClubSettings | null>(null);
-  const [closures, setClosures] = useState<PublicClosure[]>([]);
+  const [schedule, setSchedule] = useState<ClubSchedule | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
 
   // Selection
+  /** The group (e.g. Billiards) the user is choosing a game type from, if any. */
+  const [group, setGroup] = useState<Activity | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [date, setDate] = useState<DateOption | null>(() => dateToOption(new Date()));
   const [slot, setSlot] = useState<TimeSlot | null>(null);
@@ -142,21 +139,25 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
     setActivitiesLoading(false);
   }, []);
 
+  const loadSchedule = useCallback(async () => {
+    setSettingsLoading(true);
+    setScheduleError(null);
+    const { data, error } = await getClubSchedule();
+    setSchedule(data);
+    setScheduleError(error);
+    setSettingsLoading(false);
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadActivities();
+    void loadSchedule();
+  }, [loadActivities, loadSchedule]);
 
-    void Promise.all([getPublicSettings(), listPublicClosures()]).then(([s, c]) => {
-      setSettings(s.data);
-      setClosures(c.data);
-      setSettingsLoading(false);
-    });
-  }, [loadActivities]);
-
-  /** True when the club is closed on this date (weekly off day or a closure range). */
+  /** True when the club is closed on this date (that weekday is off, or a closure range covers it). */
   const isDateClosed = useCallback(
-    (d: DateOption) => isClosedOn(d.id, settings, closures),
-    [settings, closures],
+    (d: DateOption) => (schedule ? !getDateOpenState(schedule.hours, schedule.closures, d.id).open : false),
+    [schedule],
   );
 
   const closedToday = useMemo(() => (date ? isDateClosed(date) : false), [date, isDateClosed]);
@@ -189,7 +190,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
   useEffect(() => {
     let cancelled = false;
 
-    if (!activity || !date || !duration || closedToday || settingsLoading) {
+    if (!activity || !date || !duration || closedToday || settingsLoading || scheduleError) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSlots([]);
       setSlotsError(null);
@@ -229,13 +230,14 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
     return () => {
       cancelled = true;
     };
-  }, [activity, date, duration, closedToday, settingsLoading, availabilityNonce]);
+  }, [activity, date, duration, closedToday, settingsLoading, scheduleError, availabilityNonce]);
 
   const draft: BookingDraft = { activity, date, slot, duration, players, customer };
   const total = duration ? duration.price + (slot?.isPeak ? PEAK_SURCHARGE : 0) : undefined;
   const canContinue = Boolean(slot && duration && players);
 
-  const selectActivity = (chosen: Activity) => {
+  /** Starts the schedule step for a bookable activity (a normal activity or a game type). */
+  const startSchedule = (chosen: Activity) => {
     setActivity(chosen);
     setSlot(null);
     setDuration(null);
@@ -243,6 +245,19 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
     setSubmitError(null);
     setStage("schedule");
   };
+
+  const selectActivity = (chosen: Activity) => {
+    // A group (Billiards) first asks which game type; everything else goes straight to scheduling.
+    if (chosen.subcategories && chosen.subcategories.length > 0) {
+      setGroup(chosen);
+      setStage("variants");
+      return;
+    }
+    setGroup(null);
+    startSchedule(chosen);
+  };
+
+  const selectVariant = (chosen: Activity) => startSchedule(chosen);
 
   const selectDate = (chosen: DateOption) => {
     if (isDateClosed(chosen)) return;
@@ -296,7 +311,8 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
 
     const { bookingCode, error } = await createBooking({
       activityId: activity.id,
-      activityName: activity.name,
+      // Snapshot reads "Billiards · Snooker" for game types, plain name otherwise.
+      activityName: activity.groupName ? `${activity.groupName} · ${activity.name}` : activity.name,
       durationId: duration.id,
       durationMinutes: duration.minutes,
       durationLabel: duration.label,
@@ -339,6 +355,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
 
   const reset = () => {
     setStage("activities");
+    setGroup(null);
     setActivity(null);
     setSlot(null);
     setDuration(null);
@@ -352,8 +369,22 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
       <div className="relative flex h-full w-full max-w-md flex-col overflow-hidden">
         {stage === "activities" && <Navbar onBrandClick={onExit} onMyBookings={onViewBookings} />}
+        {stage === "variants" && group && (
+          <Navbar
+            onBack={() => {
+              setGroup(null);
+              setStage("activities");
+            }}
+            title={group.name}
+            onMyBookings={onViewBookings}
+          />
+        )}
         {stage === "schedule" && activity && (
-          <Navbar onBack={() => setStage("activities")} title={activity.name} onMyBookings={onViewBookings} />
+          <Navbar
+            onBack={() => setStage(group ? "variants" : "activities")}
+            title={activity.name}
+            onMyBookings={onViewBookings}
+          />
         )}
 
         {stage === "activities" && (
@@ -389,6 +420,17 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
           </div>
         )}
 
+        {stage === "variants" && group && group.subcategories && (
+          <div key="variants" className="flex-1 animate-[fade-slide-up_320ms_ease-out] overflow-y-auto pt-5">
+            <div className="mb-7 px-6 -mt-3">
+              <h1 className="font-display text-4xl leading-8 tracking-[-0.09em] text-ivory light:text-felt-dark">
+                Which <span className="text-brass">{group.name.toLowerCase()}</span> game?
+              </h1>
+            </div>
+            <ActivityList activities={group.subcategories} onSelect={selectVariant} />
+          </div>
+        )}
+
         {stage === "schedule" && activity && (
           <>
             <div key="schedule" className="flex-1 animate-[fade-slide-up_320ms_ease-out] overflow-y-auto pt-4">
@@ -404,7 +446,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
                   />
                   <div className="relative flex h-full flex-col justify-end p-5">
                     <span className="font-display text-xl leading-none tracking-[-0.06em] text-ivory">
-                      {activity.name}
+                      {activity.groupName ? `${activity.groupName} · ${activity.name}` : activity.name}
                     </span>
                     {activity.tagline && (
                       <span className="mt-1 text-xs tracking-tight text-ivory/75">{activity.tagline}</span>
@@ -418,12 +460,22 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings }: BookingPage
                   label="Date"
                   value={date ? `${date.dayLabel}, ${date.dayNumber} ${date.monthLabel}` : undefined}
                 />
-                <DateCalendar
-                  selectedId={date?.id ?? null}
-                  onSelect={selectDate}
-                  isDateDisabled={isDateClosed}
-                  loading={settingsLoading}
-                />
+                {scheduleError ? (
+                  <StateCard
+                    compact
+                    icon={<AlertIcon />}
+                    title="Couldn't load opening hours"
+                    description="Please try again."
+                    action={{ label: "Retry", onClick: () => void loadSchedule() }}
+                  />
+                ) : (
+                  <DateCalendar
+                    selectedId={date?.id ?? null}
+                    onSelect={selectDate}
+                    isDateDisabled={isDateClosed}
+                    loading={settingsLoading}
+                  />
+                )}
               </SectionCard>
 
               {/* Duration comes before time: availability is computed per duration. */}

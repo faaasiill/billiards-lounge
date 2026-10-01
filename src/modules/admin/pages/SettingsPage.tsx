@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   getClubSettings,
   updateClubSettings,
@@ -9,6 +15,7 @@ import {
   removeClosure,
   type ClubClosure,
 } from "../services/settingsService";
+import DangerZone from "../components/DangerZone";
 import {
   DEFAULT_HOURS,
   WEEKDAY_NAMES,
@@ -88,7 +95,9 @@ const SettingsPage = () => {
   const [closureStart, setClosureStart] = useState("");
   const [closureEnd, setClosureEnd] = useState("");
   const [closureReason, setClosureReason] = useState("");
-  const [closureKind, setClosureKind] = useState<"holiday" | "leave">("holiday");
+  const [closureKind, setClosureKind] = useState<"holiday" | "leave">(
+    "holiday",
+  );
   const [addingClosure, setAddingClosure] = useState(false);
   const [closureError, setClosureError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -97,7 +106,10 @@ const SettingsPage = () => {
     setLoading(true);
     setLoadError(null);
 
-    const [settingsRes, hoursRes] = await Promise.all([getClubSettings(), getClubHours()]);
+    const [settingsRes, hoursRes] = await Promise.all([
+      getClubSettings(),
+      getClubHours(),
+    ]);
 
     if (settingsRes.data) {
       setBufferMinutes(settingsRes.data.cleanup_buffer_minutes);
@@ -130,7 +142,9 @@ const SettingsPage = () => {
 
   const updateDay = (weekday: number, patch: Partial<DayHours>) => {
     setHoursSuccess(false);
-    setHours((prev) => prev.map((d) => (d.weekday === weekday ? { ...d, ...patch } : d)));
+    setHours((prev) =>
+      prev.map((d) => (d.weekday === weekday ? { ...d, ...patch } : d)),
+    );
   };
 
   const copyDayTo = (sourceWeekday: number, targets: number[]) => {
@@ -140,7 +154,12 @@ const SettingsPage = () => {
     setHours((prev) =>
       prev.map((d) =>
         targets.includes(d.weekday)
-          ? { ...d, is_open: source.is_open, open_time: source.open_time, close_time: source.close_time }
+          ? {
+              ...d,
+              is_open: source.is_open,
+              open_time: source.open_time,
+              close_time: source.close_time,
+            }
           : d,
       ),
     );
@@ -148,7 +167,8 @@ const SettingsPage = () => {
 
   const dayError = (day: DayHours): string | null => {
     if (!day.is_open) return null;
-    if (!day.open_time || !day.close_time) return "Set both an opening and a closing time.";
+    if (!day.open_time || !day.close_time)
+      return "Set both an opening and a closing time.";
     if (toMinutes(day.open_time) === toMinutes(day.close_time))
       return "Opening and closing time can't be the same.";
     return null;
@@ -262,10 +282,12 @@ const SettingsPage = () => {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h2 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">Settings</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">
+          Settings
+        </h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Opening hours for each day of the week, buffer time, and holidays. Changes apply immediately to
-          future availability.
+          Opening hours for each day of the week, buffer time, and holidays.
+          Changes apply immediately to future availability.
         </p>
       </section>
 
@@ -273,9 +295,12 @@ const SettingsPage = () => {
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h3 className="text-sm font-medium text-neutral-900">Weekly schedule</h3>
+            <h3 className="text-sm font-medium text-neutral-900">
+              Weekly schedule
+            </h3>
             <p className="mt-1 text-xs text-neutral-500">
-              Each day has its own hours. Turn a day off to close it completely, with no bookings possible.
+              Each day has its own hours. Turn a day off to close it completely,
+              with no bookings possible.
             </p>
           </div>
           <div className="flex gap-1.5">
@@ -300,7 +325,9 @@ const SettingsPage = () => {
 
         <ul className="mt-4 flex flex-col gap-2.5">
           {WEEK_ORDER.map((weekday) => {
-            const day = hours.find((d) => d.weekday === weekday) ?? DEFAULT_HOURS[weekday];
+            const day =
+              hours.find((d) => d.weekday === weekday) ??
+              DEFAULT_HOURS[weekday];
             const name = WEEKDAY_NAMES[weekday];
             const error = dayError(day);
 
@@ -308,7 +335,9 @@ const SettingsPage = () => {
               <li
                 key={weekday}
                 className={`rounded-xl border p-3.5 transition-colors ${
-                  day.is_open ? "border-neutral-200 bg-white" : "border-neutral-200 bg-neutral-50"
+                  day.is_open
+                    ? "border-neutral-200 bg-white"
+                    : "border-neutral-200 bg-neutral-50"
                 }`}
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
@@ -316,14 +345,22 @@ const SettingsPage = () => {
                     <div className="flex items-center gap-3">
                       <Toggle
                         checked={day.is_open}
-                        onChange={(value) => updateDay(weekday, { is_open: value })}
+                        onChange={(value) =>
+                          updateDay(weekday, { is_open: value })
+                        }
                         disabled={savingHours}
                         label={`${name} open`}
                       />
                       <div>
-                        <p className="text-sm font-medium text-neutral-900">{name}</p>
+                        <p className="text-sm font-medium text-neutral-900">
+                          {name}
+                        </p>
                         <p
-                          className={`text-xs ${day.is_open ? "text-emerald-700" : "text-neutral-400"}`}
+                          className={`text-xs ${
+                            day.is_open
+                              ? "text-emerald-700"
+                              : "text-neutral-400"
+                          }`}
                         >
                           {day.is_open ? "Open" : "Closed"}
                         </p>
@@ -340,20 +377,27 @@ const SettingsPage = () => {
                         id={`open-${weekday}`}
                         type="time"
                         value={day.open_time}
-                        onChange={(e) => updateDay(weekday, { open_time: e.target.value })}
+                        onChange={(e) =>
+                          updateDay(weekday, { open_time: e.target.value })
+                        }
                         disabled={savingHours || !day.is_open}
                         className={inputClass}
                       />
                     </div>
                     <div>
-                      <label htmlFor={`close-${weekday}`} className={labelClass}>
+                      <label
+                        htmlFor={`close-${weekday}`}
+                        className={labelClass}
+                      >
                         Closing time
                       </label>
                       <input
                         id={`close-${weekday}`}
                         type="time"
                         value={day.close_time}
-                        onChange={(e) => updateDay(weekday, { close_time: e.target.value })}
+                        onChange={(e) =>
+                          updateDay(weekday, { close_time: e.target.value })
+                        }
                         disabled={savingHours || !day.is_open}
                         className={inputClass}
                       />
@@ -361,9 +405,13 @@ const SettingsPage = () => {
                   </div>
 
                   <div className="lg:w-48 lg:text-right">
-                    <p className="text-sm font-medium text-neutral-900">{describeHours(day)}</p>
+                    <p className="text-sm font-medium text-neutral-900">
+                      {describeHours(day)}
+                    </p>
                     {closesAfterMidnight(day) && (
-                      <p className="text-[11px] text-neutral-500">Closes after midnight</p>
+                      <p className="text-[11px] text-neutral-500">
+                        Closes after midnight
+                      </p>
                     )}
                   </div>
                 </div>
@@ -379,12 +427,15 @@ const SettingsPage = () => {
         </ul>
 
         <p className="mt-3 text-xs text-neutral-500">
-          For midnight, set the closing time to 12:00 AM. A closing time earlier than the opening time means
-          the shop stays open past midnight.
+          For midnight, set the closing time to 12:00 AM. A closing time earlier
+          than the opening time means the shop stays open past midnight.
         </p>
 
         {hoursError && (
-          <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+          >
             {hoursError}
           </p>
         )}
@@ -407,7 +458,9 @@ const SettingsPage = () => {
             {savingHours && <Spinner />}
             {savingHours ? "Saving…" : "Save schedule"}
           </button>
-          {hoursDirty && !savingHours && <span className="text-xs text-amber-600">Unsaved changes</span>}
+          {hoursDirty && !savingHours && (
+            <span className="text-xs text-amber-600">Unsaved changes</span>
+          )}
           {hoursDirty && !savingHours && (
             <button
               type="button"
@@ -422,9 +475,15 @@ const SettingsPage = () => {
 
       {/* ---------------- General settings ---------------- */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-neutral-900">Buffer & defaults</h3>
+        <h3 className="text-sm font-medium text-neutral-900">
+          Buffer & defaults
+        </h3>
 
-        <form onSubmit={(e) => void handleSaveGeneral(e)} noValidate className="mt-4 flex flex-col gap-4">
+        <form
+          onSubmit={(e) => void handleSaveGeneral(e)}
+          noValidate
+          className="mt-4 flex flex-col gap-4"
+        >
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="buffer-minutes" className={labelClass}>
@@ -462,12 +521,17 @@ const SettingsPage = () => {
                 disabled={savingGeneral}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-neutral-500">Used when a customer hasn't chosen a duration yet.</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Used when a customer hasn't chosen a duration yet.
+              </p>
             </div>
           </div>
 
           {generalError && (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+            >
               {generalError}
             </p>
           )}
@@ -493,9 +557,12 @@ const SettingsPage = () => {
 
       {/* ---------------- Closures ---------------- */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <h3 className="text-sm font-medium text-neutral-900">Leave & holiday dates</h3>
+        <h3 className="text-sm font-medium text-neutral-900">
+          Leave & holiday dates
+        </h3>
         <p className="mt-1 text-xs text-neutral-500">
-          Specific closed date ranges, on top of the days switched off in the weekly schedule.
+          Specific closed date ranges, on top of the days switched off in the
+          weekly schedule.
         </p>
 
         <form
@@ -549,7 +616,9 @@ const SettingsPage = () => {
             <select
               id="closure-kind"
               value={closureKind}
-              onChange={(e) => setClosureKind(e.target.value as "holiday" | "leave")}
+              onChange={(e) =>
+                setClosureKind(e.target.value as "holiday" | "leave")
+              }
               disabled={addingClosure}
               className={inputClass}
             >
@@ -569,30 +638,45 @@ const SettingsPage = () => {
         </form>
 
         {closureError && (
-          <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+          >
             {closureError}
           </p>
         )}
 
         <div className="mt-5">
           {closuresLoading ? (
-            <div role="status" className="flex items-center gap-2 py-6 text-sm text-neutral-500">
+            <div
+              role="status"
+              className="flex items-center gap-2 py-6 text-sm text-neutral-500"
+            >
               <Spinner className="h-4 w-4" />
               Loading closures…
             </div>
           ) : closures.length === 0 ? (
-            <EmptyState title="No closures added" description="Add a holiday or leave date above." />
+            <EmptyState
+              title="No closures added"
+              description="Add a holiday or leave date above."
+            />
           ) : (
             <ul className="divide-y divide-neutral-100 overflow-hidden rounded-xl border border-neutral-200">
               {closures.map((closure) => (
-                <li key={closure.id} className="flex items-center justify-between gap-3 p-3.5">
+                <li
+                  key={closure.id}
+                  className="flex items-center justify-between gap-3 p-3.5"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-neutral-900">
                       {formatDate(closure.start_date)}
-                      {closure.end_date !== closure.start_date ? ` – ${formatDate(closure.end_date)}` : ""}
+                      {closure.end_date !== closure.start_date
+                        ? ` – ${formatDate(closure.end_date)}`
+                        : ""}
                     </p>
                     <p className="truncate text-xs text-neutral-500">
-                      {closure.reason || (closure.kind === "holiday" ? "Holiday" : "Leave")}
+                      {closure.reason ||
+                        (closure.kind === "holiday" ? "Holiday" : "Leave")}
                       <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
                         {closure.kind}
                       </span>
@@ -603,7 +687,9 @@ const SettingsPage = () => {
                     disabled={removingId === closure.id}
                     className="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
                   >
-                    {removingId === closure.id && <Spinner className="h-3 w-3" />}
+                    {removingId === closure.id && (
+                      <Spinner className="h-3 w-3" />
+                    )}
                     Remove
                   </button>
                 </li>
@@ -612,6 +698,12 @@ const SettingsPage = () => {
           )}
         </div>
       </section>
+      <DangerZone
+        onCleared={(scope) => {
+          void loadClosures();
+          if (scope === "settings") void load();
+        }}
+      />
     </div>
   );
 };

@@ -26,6 +26,10 @@ export type AdminActivity = {
   durations: AdminActivityDuration[];
   /** Count of active tables — fetched alongside for the list view. */
   table_count: number;
+  /** True for a group such as Billiards (holds game types, not bookable itself). */
+  is_group: boolean;
+  /** Set on a game type (Snooker, 8-Ball): the id of its group. */
+  parent_id: string | null;
 };
 
 export type ActivityDurationInput = {
@@ -45,6 +49,10 @@ export type ActivityInput = {
   /** Desired total active table count — reconciled against existing rows. */
   table_count: number;
   durations: ActivityDurationInput[];
+  /** Create-only: marks this row as a group (e.g. Billiards). */
+  is_group?: boolean;
+  /** Create-only: makes this row a game type inside the given group. */
+  parent_id?: string | null;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -79,18 +87,19 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
     .from("activities")
     .select(
       `id, name, slug, short_description, images, starting_price, min_players, max_players,
-       is_active, sort_order, created_at, updated_at,
+       is_active, sort_order, created_at, updated_at, is_group, parent_id,
        durations:activity_durations(id, activity_id, minutes, label, price, is_active, sort_order),
        tables:activity_tables(id, is_active)`,
     )
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) return { data: [], error: "Couldn't load activities. Please try again." };
 
   const mapped: AdminActivity[] = (data ?? []).map((row) => {
     const tables = (row as unknown as { tables: { id: string; is_active: boolean }[] }).tables ?? [];
     const durations = ((row as unknown as { durations: AdminActivityDuration[] }).durations ?? [])
-      .slice()
+      .filter((d) => d.is_active)
       .sort((a, b) => a.sort_order - b.sort_order || a.minutes - b.minutes);
 
     return {
@@ -108,6 +117,8 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
       updated_at: row.updated_at,
       durations: durations.map((d) => ({ ...d, price: Number(d.price) })),
       table_count: tables.filter((t) => t.is_active).length,
+      is_group: Boolean((row as unknown as { is_group: boolean | null }).is_group),
+      parent_id: (row as unknown as { parent_id: string | null }).parent_id ?? null,
     };
   });
 
@@ -115,18 +126,26 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
 };
 
 /**
- * Creates a new activity, its duration rows, and its table pool in one
- * transaction-like sequence (Supabase JS has no client-side multi-table
- * transaction, so we do best-effort sequential inserts and surface the
- * first error; partial creation is acceptable here since an admin can
- * retry/edit — nothing customer-facing is exposed until is_active is set,
- * which only happens if every step below succeeds).
+ * Creates an activity, a group (is_group) or a game type inside a group
+ * (parent_id). Groups have no durations or tables of their own. Sequential
+ * inserts; the row is only made visible at the end if every step succeeded.
  */
 export const createActivity = async (
   input: ActivityInput,
 ): Promise<{ id: string | null; error: string | null }> => {
-  const slug = slugify(input.name);
-  const startingPrice = computeStartingPrice(input.durations);
+  const isGroup = Boolean(input.is_group);
+  const parentId = input.parent_id ?? null;
+
+  let slug = slugify(input.name);
+
+  if (parentId) {
+    const { data: parent } = await supabase.from("activities").select("slug").eq("id", parentId).single();
+    if (parent?.slug) slug = `${parent.slug}-${slug}`;
+  }
+
+  const durations = isGroup ? [] : input.durations;
+  const tableCount = isGroup ? 0 : input.table_count;
+  const startingPrice = computeStartingPrice(durations);
 
   const { data: activity, error: activityError } = await supabase
     .from("activities")
@@ -136,9 +155,11 @@ export const createActivity = async (
       short_description: input.short_description.trim(),
       images: input.images,
       starting_price: startingPrice,
-      min_players: input.min_players,
-      max_players: input.max_players,
+      min_players: isGroup ? 1 : input.min_players,
+      max_players: isGroup ? 1 : input.max_players,
       is_active: false, // flip on only after durations + tables succeed
+      is_group: isGroup,
+      parent_id: parentId,
     })
     .select("id")
     .single();
@@ -147,9 +168,9 @@ export const createActivity = async (
 
   const activityId = activity.id as string;
 
-  if (input.durations.length > 0) {
+  if (durations.length > 0) {
     const { error: durationsError } = await supabase.from("activity_durations").insert(
-      input.durations.map((d, i) => ({
+      durations.map((d, i) => ({
         activity_id: activityId,
         minutes: d.minutes,
         label: d.label,
@@ -160,9 +181,9 @@ export const createActivity = async (
     if (durationsError) return { id: activityId, error: toMessage(durationsError.message) };
   }
 
-  if (input.table_count > 0) {
+  if (tableCount > 0) {
     const { error: tablesError } = await supabase.from("activity_tables").insert(
-      Array.from({ length: input.table_count }, (_, i) => ({
+      Array.from({ length: tableCount }, (_, i) => ({
         activity_id: activityId,
         label: `Table ${i + 1}`,
         position: i + 1,
@@ -184,10 +205,8 @@ export const createActivity = async (
 /**
  * Updates an activity's core fields, reconciles its duration set (update
  * existing rows in place, insert new ones, retire ones the admin removed —
- * never hard-delete, since a duration may already be referenced by a
- * booking), and reconciles its table pool by count (add tables to reach a
- * higher count, retire the highest-position active tables to reach a lower
- * count — again never deleting).
+ * never hard-delete) and reconciles its table pool by count.
+ * Works for groups too: they simply have no durations or tables.
  */
 export const updateActivity = async (
   activityId: string,
