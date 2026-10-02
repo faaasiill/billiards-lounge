@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import logo from "../../../assets/logo design1.png";
 import { useTheme } from "../../../context/ThemeContext";
+import { useIsAdmin } from "../../../hooks/useIsAdmin";
 import { useCustomerSession } from "../../booking/hooks/useCustomerSession";
 import type { InfoPage } from "../../info/types";
 
@@ -64,6 +65,13 @@ const TicketIcon = () => (
   </svg>
 );
 
+const ShieldIcon = () => (
+  <svg {...iconProps}>
+    <path d="M12 3 4 6v6c0 4.5 3.2 8 8 9 4.8-1 8-4.5 8-9V6l-8-3Z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
 const BackIcon = () => (
   <svg
     width="16"
@@ -97,6 +105,10 @@ const Navbar = ({
   const { theme, toggleTheme } = useTheme();
   const { session, logout } = useCustomerSession();
 
+  // True only for a logged-in admin (confirmed by the database). Normal
+  // customers, logged-out visitors and failed checks all get false.
+  const isAdmin = useIsAdmin();
+
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -125,6 +137,12 @@ const Navbar = ({
     } else {
       openMenu();
     }
+  };
+
+  /** Hash route; App.tsx listens to hashchange and switches to the admin app. */
+  const goToAdmin = () => {
+    closeMenu();
+    window.location.hash = "/admin";
   };
 
   const BrandTag = onBrandClick ? "button" : "div";
@@ -242,6 +260,20 @@ const Navbar = ({
                       <TicketIcon />
                     </span>
                     My Bookings
+                  </button>
+                )}
+
+                {/* Admin panel — rendered ONLY for a confirmed admin session.
+                    Never present in the DOM for normal customers. */}
+                {isAdmin && (
+                  <button
+                    onClick={goToAdmin}
+                    className="flex w-full items-center gap-2.5 rounded-full px-4 py-2.5 text-left text-sm font-medium tracking-tight text-brass transition-colors active:bg-ivory/10 light:active:bg-felt-dark/10"
+                  >
+                    <span className="flex h-4 w-4 items-center justify-center">
+                      <ShieldIcon />
+                    </span>
+                    Admin panel
                   </button>
                 )}
 
