@@ -1,0 +1,21 @@
+# Billiards Lounge
+
+> Entertainment lounge in Edasherikadavu, Kizhuparamba, Kerala, India (673639). Online booking for Snooker, 8-Ball, Chess and PS5, plus a café.
+
+Billiards Lounge is by the riverside of Edasserikadavu. Customers book a game by choosing an activity, date, duration, time slot and number of players, then confirm with their name and mobile number.
+
+## Main pages
+
+- [Home and online booking](https://www.billiardslounge.site/): Choose a game and reserve a table or session online
+- [Sitemap](https://www.billiardslounge.site/sitemap.xml): List of indexable URLs
+
+## Contact
+
+- [WhatsApp chat](https://wa.me/917306010124): Message the club directly
+- [Email](mailto:billiardsloungebl@gmail.com): billiardsloungebl@gmail.com
+- [Phone](tel:+917306010124): +91 73060 10124
+
+## Location
+
+- Address: Edasherikadavu, Kizhuparamba, Kerala, India – 673639
+- Landmark: Near the riverside of Edasserikadavu

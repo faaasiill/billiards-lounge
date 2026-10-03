@@ -1,18 +1,18 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import HomePage from "./modules/home";
-import BookingPage from "./modules/booking";
-import MyBookingsPage from "./modules/mybookings";
-import AboutPage from "./modules/about";
-import ContactPage from "./modules/contact";
-import LocationPage from "./modules/location";
 import { ThemeProvider } from "./context/ThemeContext";
 import { isAdminPath } from "./modules/admin/hooks/useAdminRoute";
 import { useCustomerSession } from "./modules/booking/hooks/useCustomerSession";
-import { listBookingsByPhone } from "./modules/booking/services/userBookingsService";
 import type { Booking } from "./modules/booking/types";
 import type { InfoPage } from "./modules/info/types";
 
+// Only the home page is in the initial bundle; everything else is split out.
 const AdminApp = lazy(() => import("./modules/admin"));
+const BookingPage = lazy(() => import("./modules/booking"));
+const MyBookingsPage = lazy(() => import("./modules/mybookings"));
+const AboutPage = lazy(() => import("./modules/about"));
+const ContactPage = lazy(() => import("./modules/contact"));
+const LocationPage = lazy(() => import("./modules/location"));
 
 type View = "home" | "booking" | "myBookings" | InfoPage;
 
@@ -31,6 +31,23 @@ const App = () => {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  // Warm the other views once the home page is idle so navigation stays instant.
+  useEffect(() => {
+    const warm = () => {
+      void import("./modules/booking");
+      void import("./modules/mybookings");
+      void import("./modules/about");
+      void import("./modules/contact");
+      void import("./modules/location");
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(warm);
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(warm, 2000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const phone = session?.phone ?? null;
 
   const refreshBookings = useCallback(async () => {
@@ -42,6 +59,7 @@ const App = () => {
 
     setBookingsLoading(true);
     setBookingsError(null);
+    const { listBookingsByPhone } = await import("./modules/booking/services/userBookingsService");
     const { data, error } = await listBookingsByPhone(phone);
     setBookings(data);
     setBookingsError(error);
@@ -81,55 +99,41 @@ const App = () => {
         <HomePage onReserve={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
       )}
 
-      {view === "booking" && (
-        <BookingPage
-          onExit={goHome}
-          // The database is the source of truth now; My Bookings refetches when opened.
-          onBookingConfirmed={() => {}}
-          onViewBookings={goMyBookings}
-          onNavigate={goInfo}
-        />
-      )}
+      <Suspense fallback={null}>
+        {view === "booking" && (
+          <BookingPage
+            onExit={goHome}
+            onBookingConfirmed={() => {}}
+            onViewBookings={goMyBookings}
+            onNavigate={goInfo}
+          />
+        )}
 
-      {view === "myBookings" && (
-        <MyBookingsPage
-          bookings={bookings}
-          loading={bookingsLoading}
-          error={bookingsError}
-          loggedIn={Boolean(session)}
-          onRetry={() => void refreshBookings()}
-          onBack={goHome}
-          onStartBooking={goBooking}
-          onNavigate={goInfo}
-        />
-      )}
+        {view === "myBookings" && (
+          <MyBookingsPage
+            bookings={bookings}
+            loading={bookingsLoading}
+            error={bookingsError}
+            loggedIn={Boolean(session)}
+            onRetry={() => void refreshBookings()}
+            onBack={goHome}
+            onStartBooking={goBooking}
+            onNavigate={goInfo}
+          />
+        )}
 
-      {view === "about" && (
-        <AboutPage
-          onBack={goHome}
-          onStartBooking={goBooking}
-          onMyBookings={goMyBookings}
-          onNavigate={goInfo}
-        />
-      )}
+        {view === "about" && (
+          <AboutPage onBack={goHome} onStartBooking={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
+        )}
 
-      {view === "contact" && (
-        <ContactPage
-          onBack={goHome}
-          onStartBooking={goBooking}
-          onMyBookings={goMyBookings}
-          onNavigate={goInfo}
-        />
-      )}
+        {view === "contact" && (
+          <ContactPage onBack={goHome} onStartBooking={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
+        )}
 
-      {view === "location" && (
-        <LocationPage
-          onBack={goHome}
-          onStartBooking={goBooking}
-          onMyBookings={goMyBookings}
-          onNavigate={goInfo}
-        />
-      )}
+        {view === "location" && (
+          <LocationPage onBack={goHome} onStartBooking={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
+        )}
+      </Suspense>
     </ThemeProvider>
   );
 };
