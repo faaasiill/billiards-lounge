@@ -33,10 +33,6 @@ const BookingCard = ({ booking, now, onCancel, onViewCustomer }: BookingCardProp
   const isFinished = time.phase === "completed";
   const canCancel = !isCancelled && !isFinished;
 
-  const activityLabel = booking.table_label
-    ? `${booking.activity_name} · ${booking.table_label}`
-    : booking.activity_name;
-
   const handleConfirmCancel = async () => {
     setCancelling(true);
     await onCancel(booking);
@@ -74,7 +70,8 @@ const BookingCard = ({ booking, now, onCancel, onViewCustomer }: BookingCardProp
 
       {/* Details */}
       <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        <Detail label="Activity" value={activityLabel} />
+        <Detail label="Activity" value={booking.activity_name} />
+        <Detail label="Table" value={booking.table_label ?? "—"} />
         <Detail label="Date" value={formatBookingDate(booking.start_at)} />
         <Detail label="Time" value={formatTimeRange(booking.start_at, booking.end_at)} />
         <Detail label="Duration" value={booking.duration_label} />

@@ -5,6 +5,7 @@ import DateCalendar from "./components/DateCalendar";
 import SlotGrid from "./components/SlotGrid";
 import DurationSelector from "./components/Durationselector";
 import PlayersSelector from "./components/PlayersSelector";
+import TablePicker from "./components/TablePicker";
 import CustomerDetailsSheet from "./components/CustomerDetailsSheet";
 import LoginSheet from "./components/LoginSheet";
 import ReviewSheet from "./components/ReviewSheet";
@@ -14,7 +15,12 @@ import { ActivityListSkeleton, SlotGridSkeleton } from "./components/Skeleton";
 import StateCard, { AlertIcon, ClockIcon, HourglassIcon, TableIcon } from "./components/StateCard";
 import { PEAK_SURCHARGE, dateToOption, buildDateOptionsFrom } from "./mockData";
 import { listPublicActivities } from "./services/activitiesPublicService";
-import { getActivityAvailability, createBooking } from "./services/availabilityService";
+import {
+  getActivityAvailability,
+  getTableAvailability,
+  createBooking,
+  type TableStatus,
+} from "./services/availabilityService";
 import { getClubSchedule, type ClubSchedule } from "./services/clubScheduleService";
 import { getDateOpenState } from "../../lib/clubHours";
 import { useCustomerSession } from "./hooks/useCustomerSession";
@@ -129,6 +135,12 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [availabilityNonce, setAvailabilityNonce] = useState(0);
 
+  // Table selection (only shown when the activity has more than one table)
+  const [tables, setTables] = useState<TableStatus[]>([]);
+  const [tablesLoading, setTablesLoading] = useState(false);
+  /** null = "Any available table" (auto-assign). */
+  const [tableId, setTableId] = useState<string | null>(null);
+
   // Submit
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -235,6 +247,35 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     };
   }, [activity, date, duration, closedToday, settingsLoading, scheduleError, availabilityNonce]);
 
+  // Load per-table status whenever a time slot is chosen (or availability refreshes).
+  // Choosing a different slot always resets the table back to "Any".
+  useEffect(() => {
+    let cancelled = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTableId(null);
+
+    const startAt = slot ? slotStartAt[slot.id] : undefined;
+
+    if (!activity || !slot || !duration || !startAt) {
+      setTables([]);
+      setTablesLoading(false);
+      return;
+    }
+
+    setTablesLoading(true);
+
+    void getTableAvailability(activity.id, startAt, duration.minutes).then(({ data }) => {
+      if (cancelled) return;
+      setTables(data);
+      setTablesLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activity, slot, duration, slotStartAt, availabilityNonce]);
+
   const draft: BookingDraft = { activity, date, slot, duration, players, customer };
   const total = duration ? duration.price + (slot?.isPeak ? PEAK_SURCHARGE : 0) : undefined;
   const canContinue = Boolean(slot && duration && players);
@@ -244,6 +285,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     setActivity(chosen);
     setSlot(null);
     setDuration(null);
+    setTableId(null);
     setPlayers(chosen.minPlayers);
     setSubmitError(null);
     setStage("schedule");
@@ -326,13 +368,14 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
       customerName: customer.name,
       customerPhone: customer.phone,
       customerNotes: customer.notes,
+      tableId,
     });
 
     setSubmitting(false);
 
     if (error || !bookingCode) {
       setSubmitError(error ?? "Couldn't confirm the booking. Please try again.");
-      // The slot may have just been taken; drop the selection so availability refreshes.
+      // The slot/table may have just been taken; drop the selection so availability refreshes.
       setSlot(null);
       setSheet("none");
       retryAvailability();
@@ -364,9 +407,13 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     setDuration(null);
     setPlayers(null);
     setCustomer(null);
+    setTableId(null);
+    setTables([]);
     setSheet("none");
     setSubmitError(null);
   };
+
+  const selectedTableLabel = tableId ? tables.find((t) => t.id === tableId)?.label : undefined;
 
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
@@ -528,6 +575,19 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
                   <SlotGrid slots={slots} selectedId={slot?.id ?? null} onSelect={setSlot} />
                 )}
               </SectionCard>
+
+              {/* Table picker — only for activities with more than one table,
+                  and only once a time slot has been chosen. */}
+              {slot && (tablesLoading || tables.length > 1) && (
+                <SectionCard delayMs={150}>
+                  <SectionHeader label="Table" value={selectedTableLabel ?? "Any available"} />
+                  {tablesLoading ? (
+                    <SlotGridSkeleton />
+                  ) : (
+                    <TablePicker tables={tables} selectedId={tableId} onSelect={setTableId} />
+                  )}
+                </SectionCard>
+              )}
 
               <SectionCard delayMs={180}>
                 <SectionHeader

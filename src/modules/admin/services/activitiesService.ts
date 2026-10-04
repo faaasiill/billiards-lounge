@@ -10,6 +10,13 @@ export type AdminActivityDuration = {
   sort_order: number;
 };
 
+export type AdminTable = {
+  id: string;
+  label: string;
+  position: number;
+  is_active: boolean;
+};
+
 export type AdminActivity = {
   id: string;
   name: string;
@@ -26,6 +33,8 @@ export type AdminActivity = {
   durations: AdminActivityDuration[];
   /** Count of active tables — fetched alongside for the list view. */
   table_count: number;
+  /** The active tables themselves, ordered by position. */
+  tables: AdminTable[];
   /** True for a group such as Billiards (holds game types, not bookable itself). */
   is_group: boolean;
   /** Set on a game type (Snooker, 8-Ball): the id of its group. */
@@ -89,7 +98,7 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
       `id, name, slug, short_description, images, starting_price, min_players, max_players,
        is_active, sort_order, created_at, updated_at, is_group, parent_id,
        durations:activity_durations(id, activity_id, minutes, label, price, is_active, sort_order),
-       tables:activity_tables(id, is_active)`,
+       tables:activity_tables(id, label, position, is_active)`,
     )
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -97,7 +106,10 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
   if (error) return { data: [], error: "Couldn't load activities. Please try again." };
 
   const mapped: AdminActivity[] = (data ?? []).map((row) => {
-    const tables = (row as unknown as { tables: { id: string; is_active: boolean }[] }).tables ?? [];
+    const tables = ((row as unknown as { tables: AdminTable[] }).tables ?? [])
+      .filter((t) => t.is_active)
+      .sort((a, b) => a.position - b.position);
+
     const durations = ((row as unknown as { durations: AdminActivityDuration[] }).durations ?? [])
       .filter((d) => d.is_active)
       .sort((a, b) => a.sort_order - b.sort_order || a.minutes - b.minutes);
@@ -116,13 +128,31 @@ export const listActivities = async (): Promise<{ data: AdminActivity[]; error: 
       created_at: row.created_at,
       updated_at: row.updated_at,
       durations: durations.map((d) => ({ ...d, price: Number(d.price) })),
-      table_count: tables.filter((t) => t.is_active).length,
+      table_count: tables.length,
+      tables,
       is_group: Boolean((row as unknown as { is_group: boolean | null }).is_group),
       parent_id: (row as unknown as { parent_id: string | null }).parent_id ?? null,
     };
   });
 
   return { data: mapped, error: null };
+};
+
+/**
+ * Ids of tables that have a non-cancelled booking running at this moment.
+ * Used by the Activities page to show each table as Free / In use.
+ */
+export const listOccupiedTableIds = async (): Promise<Set<string>> => {
+  const nowIso = new Date().toISOString();
+
+  const { data } = await supabase
+    .from("bookings")
+    .select("activity_table_id")
+    .neq("status", "cancelled")
+    .lte("start_at", nowIso)
+    .gt("end_at", nowIso);
+
+  return new Set((data ?? []).map((r) => r.activity_table_id as string));
 };
 
 /**

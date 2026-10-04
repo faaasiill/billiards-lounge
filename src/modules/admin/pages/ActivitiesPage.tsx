@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   listActivities,
+  listOccupiedTableIds,
   createActivity,
   updateActivity,
   setActivityActive,
@@ -48,8 +49,29 @@ const DurationChips = ({ activity }: { activity: AdminActivity }) =>
     </div>
   ) : null;
 
+/** Live Free / In use status for each table. Only shown when there is more than one table. */
+const TableChips = ({ activity, occupied }: { activity: AdminActivity; occupied: Set<string> }) =>
+  activity.tables.length > 1 ? (
+    <div className="flex flex-wrap gap-1.5">
+      {activity.tables.map((t) => {
+        const busy = occupied.has(t.id);
+        return (
+          <span
+            key={t.id}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+              busy ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"
+            }`}
+          >
+            {t.label} · {busy ? "In use" : "Free"}
+          </span>
+        );
+      })}
+    </div>
+  ) : null;
+
 const ActivitiesPage = () => {
   const [activities, setActivities] = useState<AdminActivity[]>([]);
+  const [occupied, setOccupied] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>({ mode: "list" });
@@ -59,8 +81,9 @@ const ActivitiesPage = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await listActivities();
+    const [{ data, error }, busy] = await Promise.all([listActivities(), listOccupiedTableIds()]);
     setActivities(data);
+    setOccupied(busy);
     setLoadError(error);
     setLoading(false);
   }, []);
@@ -304,6 +327,7 @@ const ActivitiesPage = () => {
                                 <span>From ₹{kid.starting_price}</span>
                               </div>
                               <DurationChips activity={kid} />
+                              <TableChips activity={kid} occupied={occupied} />
                             </div>
 
                             <div className="flex shrink-0 gap-2">
@@ -331,7 +355,7 @@ const ActivitiesPage = () => {
               );
             }
 
-            /* ------------- Normal activity card (unchanged look) ------------- */
+            /* ------------- Normal activity card ------------- */
             return (
               <li
                 key={activity.id}
@@ -361,6 +385,7 @@ const ActivitiesPage = () => {
                   </div>
 
                   <DurationChips activity={activity} />
+                  <TableChips activity={activity} occupied={occupied} />
 
                   <div className="mt-auto flex items-center gap-2 pt-2">
                     <button

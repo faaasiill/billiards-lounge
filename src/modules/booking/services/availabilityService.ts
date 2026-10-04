@@ -9,6 +9,14 @@ export type AvailabilitySlot = {
   tablesAvailable: number;
 };
 
+export type TableStatus = {
+  id: string;
+  label: string;
+  position: number;
+  /** True when the table is already booked (or in its cleanup buffer) for the window. */
+  booked: boolean;
+};
+
 /**
  * Calls the `get_activity_availability` Postgres function, which computes
  * start times dynamically from working hours, the requested duration,
@@ -44,10 +52,44 @@ export const getActivityAvailability = async (
 };
 
 /**
- * Books the first available table for the given activity/window via the
- * `find_available_table` RPC (SKIP LOCKED, race-safe) and inserts the
- * booking row. Snapshots activity/duration details onto the booking so it
- * stays historically accurate if the activity is edited later.
+ * Per-table status (free / booked) for one specific start time and duration.
+ * Used to render the table picker. See supabase/006_table_selection.sql.
+ */
+export const getTableAvailability = async (
+  activityId: string,
+  startAt: string, // ISO instant
+  durationMinutes: number,
+): Promise<{ data: TableStatus[]; error: string | null }> => {
+  const start = new Date(startAt);
+  const end = new Date(start.getTime() + durationMinutes * 60_000);
+
+  const { data, error } = await supabase.rpc("get_table_availability", {
+    p_activity_id: activityId,
+    p_start_at: start.toISOString(),
+    p_end_at: end.toISOString(),
+  });
+
+  if (error) return { data: [], error: "Couldn't load tables. Please try again." };
+
+  return {
+    data: (data ?? []).map(
+      (r: { table_id: string; label: string; position: number; is_booked: boolean }) => ({
+        id: r.table_id,
+        label: r.label,
+        position: r.position,
+        booked: r.is_booked,
+      }),
+    ),
+    error: null,
+  };
+};
+
+/**
+ * Books a table for the given activity/window and inserts the booking row.
+ * If `tableId` is given, that exact table is validated and used; otherwise
+ * the first available table is auto-assigned via `find_available_table`
+ * (SKIP LOCKED, race-safe). Snapshots activity/duration details onto the
+ * booking so it stays historically accurate if the activity is edited later.
  */
 export type CreateBookingInput = {
   activityId: string;
@@ -62,6 +104,8 @@ export type CreateBookingInput = {
   customerName: string;
   customerPhone: string;
   customerNotes?: string;
+  /** Specific table chosen by the customer. Omit/null to auto-assign. */
+  tableId?: string | null;
 };
 
 const randomBookingCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -72,14 +116,29 @@ export const createBooking = async (
   const startAt = new Date(input.startAt);
   const endAt = new Date(startAt.getTime() + input.durationMinutes * 60_000);
 
-  const { data: tableId, error: tableError } = await supabase.rpc("find_available_table", {
-    p_activity_id: input.activityId,
-    p_start_at: startAt.toISOString(),
-    p_end_at: endAt.toISOString(),
-  });
+  const { data: tableId, error: tableError } = input.tableId
+    ? await supabase.rpc("claim_table", {
+        p_activity_id: input.activityId,
+        p_table_id: input.tableId,
+        p_start_at: startAt.toISOString(),
+        p_end_at: endAt.toISOString(),
+      })
+    : await supabase.rpc("find_available_table", {
+        p_activity_id: input.activityId,
+        p_start_at: startAt.toISOString(),
+        p_end_at: endAt.toISOString(),
+      });
 
   if (tableError) return { bookingCode: null, error: "Couldn't check availability. Please try again." };
-  if (!tableId) return { bookingCode: null, error: "That time was just taken. Please pick another slot." };
+
+  if (!tableId) {
+    return {
+      bookingCode: null,
+      error: input.tableId
+        ? "That table was just taken. Please pick another."
+        : "That time was just taken. Please pick another slot.",
+    };
+  }
 
   const bookingCode = randomBookingCode();
   const total = input.price + input.peakSurcharge;
