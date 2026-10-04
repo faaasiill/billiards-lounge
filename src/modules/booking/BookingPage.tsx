@@ -140,6 +140,8 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
   const [tablesLoading, setTablesLoading] = useState(false);
   /** null = "Any available table" (auto-assign). */
   const [tableId, setTableId] = useState<string | null>(null);
+  /** The table actually assigned after confirming (shown on the confirmation screen). */
+  const [assignedTable, setAssignedTable] = useState<string | null>(null);
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
@@ -276,7 +278,18 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     };
   }, [activity, slot, duration, slotStartAt, availabilityNonce]);
 
-  const draft: BookingDraft = { activity, date, slot, duration, players, customer };
+  const selectedTableLabel = tableId ? tables.find((t) => t.id === tableId)?.label : undefined;
+  const showTable = tables.length > 1;
+  const draft: BookingDraft = {
+    activity,
+    date,
+    slot,
+    duration,
+    players,
+    customer,
+    // Only multi-table activities show a table line.
+    tableLabel: showTable ? (selectedTableLabel ?? "Any available") : null,
+  };
   const total = duration ? duration.price + (slot?.isPeak ? PEAK_SURCHARGE : 0) : undefined;
   const canContinue = Boolean(slot && duration && players);
 
@@ -354,7 +367,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
 
     const peakSurcharge = slot.isPeak ? PEAK_SURCHARGE : 0;
 
-    const { bookingCode, error } = await createBooking({
+    const { bookingCode, tableLabel, error } = await createBooking({
       activityId: activity.id,
       // Snapshot reads "Billiards · Snooker" for game types, plain name otherwise.
       activityName: activity.groupName ? `${activity.groupName} · ${activity.name}` : activity.name,
@@ -382,6 +395,8 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
       return;
     }
 
+    const assignedLabel = showTable ? (tableLabel ?? null) : null;
+
     onBookingConfirmed?.({
       id: bookingCode,
       activity,
@@ -392,8 +407,10 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
       customer,
       total: duration.price + peakSurcharge,
       createdAt: new Date().toISOString(),
+      tableLabel: assignedLabel,
     });
 
+    setAssignedTable(assignedLabel);
     setBookingId(bookingCode);
     setSheet("none");
     setStage("confirmation");
@@ -409,11 +426,10 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     setCustomer(null);
     setTableId(null);
     setTables([]);
+    setAssignedTable(null);
     setSheet("none");
     setSubmitError(null);
   };
-
-  const selectedTableLabel = tableId ? tables.find((t) => t.id === tableId)?.label : undefined;
 
   return (
     <div className="flex h-dvh w-full justify-center overflow-hidden bg-felt font-sans light:bg-cream">
@@ -631,7 +647,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
 
         {stage === "confirmation" && (
           <ConfirmationScreen
-            draft={draft}
+            draft={{ ...draft, tableLabel: assignedTable }}
             bookingId={bookingId}
             onDone={reset}
             onViewBookings={onViewBookings}

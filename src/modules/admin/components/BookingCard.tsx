@@ -1,145 +1,228 @@
-import { useState } from "react";
-import type { AdminBooking } from "../services/bookingsService";
-import {
-  formatBookingDate,
-  formatCurrency,
-  formatTimeRange,
-  getBookingTimeInfo,
-} from "../lib/bookingTime";
-import { PhoneIcon, UserIcon } from "./icons";
-import Spinner from "./Spinner";
+import { SETTLE_TRANSITION, useMorphTransition } from "../../booking/components/useMorphTransition";
+import type { Booking } from "../../booking/types";
 
 type BookingCardProps = {
-  booking: AdminBooking;
-  now: number;
-  onCancel: (booking: AdminBooking) => Promise<void>;
-  /** Hide the View Customer action when already on the customer page. */
-  onViewCustomer?: (booking: AdminBooking) => void;
+  booking: Booking;
+  delayMs?: number;
 };
 
-const Detail = ({ label, value }: { label: string; value: string }) => (
-  <div className="min-w-0">
-    <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">{label}</p>
-    <p className="mt-0.5 truncate text-sm text-neutral-900">{value}</p>
+const ChevronDown = ({ expanded }: { expanded: boolean }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="transition-transform duration-300 ease-out"
+    style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+const DetailRow = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex items-center justify-between py-2.5">
+    <span className="text-xs tracking-tighter text-ivory/55 light:text-felt-dark/55">{label}</span>
+    <span className="text-sm font-medium tracking-tight text-ivory light:text-felt-dark">{value}</span>
   </div>
 );
 
-const BookingCard = ({ booking, now, onCancel, onViewCustomer }: BookingCardProps) => {
-  const [confirming, setConfirming] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+const IMAGE_COMPACT_SIZE = 64; // px — matches the original h-16 w-16 thumbnail
+const IMAGE_EXPANDED_HEIGHT = 288; // px — h-72, closer to the schedule-stage hero's h-90 for a properly prominent banner
+const IMAGE_COMPACT_RADIUS = 20; // px — 1.25rem, matches the original thumbnail's rounding
+const IMAGE_EXPANDED_RADIUS = 28; // px — rounded-4xl, the app's "expanded card" ceiling
 
-  const time = getBookingTimeInfo(booking.start_at, booking.end_at, booking.status, now);
-  const isCancelled = booking.status === "cancelled";
-  const isFinished = time.phase === "completed";
-  const canCancel = !isCancelled && !isFinished;
+/**
+ * One booking's summary card. The activity photo itself is the morph
+ * target: at rest it's a small rounded thumbnail sitting beside the
+ * activity name; tapping the card grows that same image in place into a
+ * full-width, rounded-4xl hero banner, while the name/date text reflows
+ * beneath it and the extra detail rows fade in — all driven by the same
+ * progress value from useMorphTransition.
+ */
+const BookingCard = ({ booking, delayMs = 0 }: BookingCardProps) => {
+  const morph = useMorphTransition();
+  const { expanded, progress, transitionsOn, boxHeight, compactRef, expandedRef, toggle, handleProps, reducedMotion } = morph;
 
-  const handleConfirmCancel = async () => {
-    setCancelling(true);
-    await onCancel(booking);
-    setCancelling(false);
-    setConfirming(false);
-  };
+  const imageHeight = IMAGE_COMPACT_SIZE + (IMAGE_EXPANDED_HEIGHT - IMAGE_COMPACT_SIZE) * progress;
+  const imageRadius = IMAGE_COMPACT_RADIUS + (IMAGE_EXPANDED_RADIUS - IMAGE_COMPACT_RADIUS) * progress;
 
   return (
-    <li
-      className={`rounded-2xl border bg-white p-4 transition-shadow hover:shadow-sm sm:p-5 ${
-        time.phase === "soon" || time.phase === "starting_now"
-          ? "border-amber-300"
-          : "border-neutral-200"
-      } ${isCancelled ? "opacity-70" : ""}`}
+    <div
+      className="mb-5 animate-[fade-slide-up_420ms_ease-out] overflow-hidden rounded-4xl border border-ivory/10 bg-ivory/5 light:border-felt-dark/10 light:bg-felt-dark/5"
+      style={{ animationDelay: `${delayMs}ms`, animationFillMode: "backwards" }}
     >
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-neutral-900">{booking.customer_name}</h3>
-          <p className="mt-0.5 font-mono text-xs text-neutral-500">#{booking.booking_code}</p>
+      {/* Header — always visible, tappable to toggle. Layout morphs from a
+          horizontal thumbnail+text row (progress 0) into a stacked
+          hero-image-then-text layout (progress 1). */}
+      <button
+        onClick={toggle}
+        aria-expanded={expanded}
+        className="flex w-full flex-col text-left transition-colors duration-200 active:bg-ivory/5 light:active:bg-felt-dark/5"
+        style={{
+          padding: `${14 - progress}px`,
+          gap: `${14 - progress * 2}px`,
+          transition: transitionsOn ? `padding ${SETTLE_TRANSITION}, gap ${SETTLE_TRANSITION}` : "none",
+        }}
+      >
+        <div
+          className="flex w-full items-center"
+          style={{
+            gap: `${14 - progress * 14}px`,
+            transition: transitionsOn ? `gap ${SETTLE_TRANSITION}` : "none",
+          }}
+        >
+          {/* The morphing image itself — same element throughout, just
+              growing in height/width/radius, never swapped or unmounted. */}
+          <div
+            className="relative shrink-0 overflow-hidden bg-ivory/10 bg-cover bg-center light:bg-felt-dark/10"
+            style={{
+              width: progress > 0 ? `${100 * progress}%` : IMAGE_COMPACT_SIZE,
+              flexBasis: progress > 0 ? "100%" : IMAGE_COMPACT_SIZE,
+              height: imageHeight,
+              borderRadius: imageRadius,
+              backgroundImage: booking.activity.image ? `url(${booking.activity.image})` : undefined,
+              transition: transitionsOn
+                ? `height ${SETTLE_TRANSITION}, width ${SETTLE_TRANSITION}, flex-basis ${SETTLE_TRANSITION}, border-radius ${SETTLE_TRANSITION}`
+                : "none",
+            }}
+          >
+            {/* Bottom scrim + overlaid name/date, fades in only once the
+                image is meaningfully expanded. */}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0"
+              style={{
+                height: "70%",
+                opacity: progress,
+                background: "linear-gradient(to top, rgba(11,36,28,0.92), rgba(11,36,28,0))",
+                transition: transitionsOn ? `opacity ${SETTLE_TRANSITION}` : "none",
+              }}
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col p-4"
+              style={{
+                opacity: progress,
+                transform: `translateY(${(1 - progress) * 6}px)`,
+                transition: transitionsOn
+                  ? `opacity ${SETTLE_TRANSITION}, transform ${SETTLE_TRANSITION}`
+                  : "none",
+              }}
+            >
+              <span className="font-display text-lg leading-none tracking-[-0.05em] text-ivory">
+                {booking.activity.name}
+              </span>
+              {booking.activity.tagline && (
+                <span className="mt-1 text-xs tracking-tight text-ivory/80">{booking.activity.tagline}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Compact-only text + price, fades out as the image expands
+              and text reflows below it instead. */}
+          <div
+            className="flex min-w-0 flex-1 items-center"
+            style={{
+              opacity: 1 - progress,
+              transition: transitionsOn ? `opacity ${SETTLE_TRANSITION}` : "none",
+              pointerEvents: progress < 0.5 ? "auto" : "none",
+            }}
+          >
+            <div className="min-w-0 flex-1">
+              <span className="block truncate font-display text-base tracking-[-0.04em] text-ivory light:text-felt-dark">
+                {booking.activity.name}
+              </span>
+              <span className="mt-0.5 block truncate text-xs tracking-tight text-ivory/55 light:text-felt-dark/55">
+                {booking.date.dayLabel}, {booking.date.dayNumber} {booking.date.monthLabel} · {booking.slot.label}
+                {booking.tableLabel ? ` · ${booking.tableLabel}` : ""}
+              </span>
+            </div>
+
+            <div className="flex shrink-0 flex-col items-end gap-1.5 pl-3">
+              <span className="font-display text-sm tracking-[-0.02em] text-brass">₹{booking.total}</span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-full text-ivory/50 light:text-felt-dark/50">
+                <ChevronDown expanded={expanded} />
+              </span>
+            </div>
+          </div>
         </div>
 
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${time.tone}`}
+        {/* Expanded-only summary line beneath the now full-width image —
+            keeps the date/time/price connected to the booking once the
+            compact row above has faded out. */}
+        <div
+          className="flex w-full items-baseline justify-between overflow-hidden"
+          style={{
+            opacity: progress,
+            maxHeight: progress > 0 ? 40 : 0,
+            transition: transitionsOn
+              ? `opacity ${SETTLE_TRANSITION}, max-height ${SETTLE_TRANSITION}`
+              : "none",
+          }}
         >
-          <span className="relative flex h-2 w-2">
-            {time.pulse && (
-              <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${time.dot}`} />
-            )}
-            <span className={`relative inline-flex h-2 w-2 rounded-full ${time.dot}`} />
+          <span className="text-xs tracking-tighter text-ivory/55 light:text-felt-dark/55">
+            {booking.date.dayLabel}, {booking.date.dayNumber} {booking.date.monthLabel} · {booking.slot.label}
           </span>
-          {time.label}
-        </span>
-      </div>
+          <span className="font-display text-sm tracking-[-0.02em] text-brass">₹{booking.total}</span>
+        </div>
+      </button>
 
-      {/* Details */}
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        <Detail label="Activity" value={booking.activity_name} />
-        <Detail label="Table" value={booking.table_label ?? "—"} />
-        <Detail label="Date" value={formatBookingDate(booking.start_at)} />
-        <Detail label="Time" value={formatTimeRange(booking.start_at, booking.end_at)} />
-        <Detail label="Duration" value={booking.duration_label} />
-        <Detail label="Players" value={String(booking.players)} />
-        <Detail label="Phone" value={booking.customer_phone} />
-        <Detail label="Total" value={formatCurrency(booking.total)} />
-        <Detail label="Status" value={isCancelled ? "Cancelled" : "Confirmed"} />
-      </div>
+      {/* Morphing detail container */}
+      <div
+        className="relative overflow-hidden px-3.5"
+        style={{
+          height: expanded || progress > 0 ? boxHeight : 0,
+          transition: transitionsOn ? `height ${SETTLE_TRANSITION}` : "none",
+        }}
+      >
+        <div ref={compactRef} className="absolute inset-x-3.5 top-0 h-px" aria-hidden="true" />
 
-      {booking.customer_notes && (
-        <p className="mt-3 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
-          <span className="font-medium text-neutral-700">Note:</span> {booking.customer_notes}
-        </p>
-      )}
-
-      {/* Actions */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <a
-          href={`tel:${booking.customer_phone.replace(/[^\d+]/g, "")}`}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 active:scale-[0.98] sm:flex-none"
+        <div
+          ref={expandedRef}
+          className="absolute inset-x-3.5 top-0"
+          style={{
+            opacity: progress,
+            transform: `translateY(${(1 - progress) * 8}px) scale(${0.975 + progress * 0.025})`,
+            transition: transitionsOn
+              ? `opacity ${SETTLE_TRANSITION}, transform ${SETTLE_TRANSITION}`
+              : "none",
+            pointerEvents: progress >= 0.5 ? "auto" : "none",
+          }}
         >
-          <PhoneIcon width={14} height={14} />
-          Call
-        </a>
-
-        {onViewCustomer && (
-          <button
-            type="button"
-            onClick={() => onViewCustomer(booking)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 active:scale-[0.98] sm:flex-none"
-          >
-            <UserIcon width={14} height={14} />
-            View customer
-          </button>
-        )}
-
-        {canCancel &&
-          (confirming ? (
-            <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={cancelling}
-                className="flex-1 rounded-lg px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50 sm:flex-none"
-              >
-                Keep booking
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmCancel()}
-                disabled={cancelling}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 sm:flex-none"
-              >
-                {cancelling && <Spinner className="h-3 w-3" />}
-                {cancelling ? "Cancelling…" : "Confirm cancel"}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className="flex-1 rounded-lg px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 active:scale-[0.98] sm:ml-auto sm:flex-none"
-            >
-              Cancel booking
-            </button>
-          ))}
+          <div className="flex flex-col divide-y divide-ivory/10 border-t border-ivory/10 pb-3.5 light:divide-felt-dark/10 light:border-felt-dark/10">
+            {booking.tableLabel && <DetailRow label="Table" value={booking.tableLabel} />}
+            <DetailRow label="Duration" value={booking.duration.label} />
+            <DetailRow label="Players" value={`${booking.players} ${booking.players === 1 ? "player" : "players"}`} />
+            <DetailRow label="Booked for" value={booking.customer.name} />
+            <DetailRow label="Total paid" value={`₹${booking.total}`} />
+            <DetailRow label="Booking ID" value={`#${booking.id}`} />
+          </div>
+        </div>
       </div>
-    </li>
+
+      {/* Drag handle — same affordance as the booking flow's selectors */}
+      <div
+        {...handleProps}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggle();
+          }
+        }}
+        role="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="flex touch-none cursor-grab select-none items-center justify-center pb-2.5 pt-0.5 active:cursor-grabbing"
+      >
+        <span
+          className={`h-1 rounded-full bg-ivory/15 light:bg-felt-dark/15 ${
+            reducedMotion ? "" : "transition-all duration-300 ease-out"
+          } ${expanded ? "w-6" : "w-8"}`}
+        />
+      </div>
+    </div>
   );
 };
 

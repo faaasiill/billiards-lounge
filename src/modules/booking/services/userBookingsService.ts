@@ -19,6 +19,8 @@ type Row = {
   image: string | null;
 };
 
+type TableRow = { booking_code: string; table_label: string };
+
 const CLUB_TIME_ZONE = "Asia/Kolkata";
 
 const timeFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -38,11 +40,20 @@ const hmFormatter = new Intl.DateTimeFormat("en-GB", {
 export const listBookingsByPhone = async (
   phone: string,
 ): Promise<{ data: Booking[]; error: string | null }> => {
-  const { data, error } = await supabase.rpc("get_bookings_by_phone", { p_phone: phone });
+  // Table names come from a separate RPC (supabase/007_booking_table_labels.sql).
+  // If it isn't installed yet or fails, bookings still load, just without a table line.
+  const [bookingsRes, tablesRes] = await Promise.all([
+    supabase.rpc("get_bookings_by_phone", { p_phone: phone }),
+    supabase.rpc("get_booking_tables_by_phone", { p_phone: phone }),
+  ]);
 
-  if (error) return { data: [], error: "Couldn't load your bookings. Please try again." };
+  if (bookingsRes.error) return { data: [], error: "Couldn't load your bookings. Please try again." };
 
-  const mapped: Booking[] = ((data ?? []) as Row[]).map((r) => {
+  const tableByCode = new Map<string, string>(
+    ((tablesRes.error ? [] : tablesRes.data ?? []) as TableRow[]).map((t) => [t.booking_code, t.table_label]),
+  );
+
+  const mapped: Booking[] = ((bookingsRes.data ?? []) as Row[]).map((r) => {
     const start = new Date(r.start_at);
 
     return {
@@ -70,6 +81,7 @@ export const listBookingsByPhone = async (
       customer: { name: r.customer_name, phone, notes: r.customer_notes ?? undefined },
       total: Number(r.total),
       createdAt: r.created_at,
+      tableLabel: tableByCode.get(r.booking_code) ?? null,
     };
   });
 

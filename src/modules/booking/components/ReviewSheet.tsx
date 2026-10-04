@@ -85,6 +85,7 @@ const ReviewSheet = ({
           value={`${draft.date.dayLabel}, ${draft.date.dayNumber} ${draft.date.monthLabel}`}
         />
         <Row label="Time" value={draft.slot.label} />
+        {draft.tableLabel && <Row label="Table" value={draft.tableLabel} />}
         <Row label="Duration" value={draft.duration.label} />
         <Row
           label="Players"

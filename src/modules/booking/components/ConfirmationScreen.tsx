@@ -72,6 +72,7 @@ const ConfirmationScreen = ({ draft, bookingId, onDone, onViewBookings }: Confir
         <div className="mt-3 flex flex-col divide-y divide-ivory/10 light:divide-felt-dark/10">
           <Row label="Date" value={`${draft.date.dayLabel}, ${draft.date.dayNumber} ${draft.date.monthLabel}`} />
           <Row label="Time" value={draft.slot.label} />
+          {draft.tableLabel && <Row label="Table" value={draft.tableLabel} />}
           <Row label="Duration" value={draft.duration.label} />
           <Row label="Players" value={`${draft.players} ${draft.players === 1 ? "player" : "players"}`} />
           <Row label="Total paid" value={`₹${total}`} accent />

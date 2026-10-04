@@ -53,6 +53,11 @@ export interface BookingDraft {
   duration: DurationOption | null;
   players: number | null;
   customer: CustomerDetails | null;
+  /**
+   * Table line shown on review/confirmation. Only set for activities with more
+   * than one table: the chosen table's name, or "Any available" before confirming.
+   */
+  tableLabel?: string | null;
 }
 
 /**
@@ -71,4 +76,6 @@ export interface Booking {
   customer: CustomerDetails;
   total: number;
   createdAt: string; // ISO timestamp, for ordering history newest-first
+  /** The table this booking is on (multi-table activities only). */
+  tableLabel?: string | null;
 }

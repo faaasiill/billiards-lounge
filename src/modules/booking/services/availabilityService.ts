@@ -112,7 +112,7 @@ const randomBookingCode = () => Math.random().toString(36).slice(2, 8).toUpperCa
 
 export const createBooking = async (
   input: CreateBookingInput,
-): Promise<{ bookingCode: string | null; error: string | null }> => {
+): Promise<{ bookingCode: string | null; tableLabel?: string | null; error: string | null }> => {
   const startAt = new Date(input.startAt);
   const endAt = new Date(startAt.getTime() + input.durationMinutes * 60_000);
 
@@ -164,5 +164,13 @@ export const createBooking = async (
 
   if (insertError) return { bookingCode: null, error: "Couldn't confirm the booking. Please try again." };
 
-  return { bookingCode, error: null };
+  // Look up the table's name so the confirmation screen can show which table
+  // was assigned (important when the customer chose "Any").
+  const { data: tableRow } = await supabase
+    .from("activity_tables")
+    .select("label")
+    .eq("id", tableId)
+    .maybeSingle();
+
+  return { bookingCode, tableLabel: (tableRow?.label as string | undefined) ?? null, error: null };
 };
