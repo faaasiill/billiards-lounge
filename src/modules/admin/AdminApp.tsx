@@ -14,6 +14,7 @@ import CustomersPage from "./pages/CustomersPage";
 import CustomerDetailsPage from "./pages/CustomerDetailsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import { ALL_NAV_ITEMS } from "./config/navigation";
+import NotificationsPage from "./pages/NotificationsPage";
 
 /**
  * Registry of live admin pages, keyed by nav item id. To ship a feature:
@@ -26,6 +27,7 @@ const PAGES: Record<string, ComponentType> = {
   customers: CustomersPage,
   activities: ActivitiesPage,
   analytics: AnalyticsPage,
+  notifications: NotificationsPage,
   settings: SettingsPage,
 };
 

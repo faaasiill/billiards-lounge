@@ -1,0 +1,7 @@
+# Both functions verify their caller in code (shared secret / admin check),
+# so the gateway JWT check is switched off.
+[functions.notify-dispatch]
+verify_jwt = false
+
+[functions.notification-admin]
+verify_jwt = false

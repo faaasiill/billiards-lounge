@@ -7,6 +7,7 @@ import {
   ChartIcon,
   SettingsIcon,
   ShieldIcon,
+  BellIcon,
 } from "../components/icons";
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -48,6 +49,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { id: "customers", label: "Customers", path: "/admin/customers", icon: UsersIcon },
       { id: "activities", label: "Activities & Tables", path: "/admin/activities", icon: TableIcon },
       { id: "admins", label: "Admins", path: "/admin/admins", icon: ShieldIcon },
+      { id: "notifications", label: "Notifications", path: "/admin/notifications", icon: BellIcon },
     ],
   },
   {
