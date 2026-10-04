@@ -122,7 +122,9 @@ export const formatBookingDate = (iso: string): string =>
   new Date(iso).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
 export const formatTime = (iso: string): string =>
-  new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  new Date(iso)
+    .toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })
+    .toUpperCase();
 
 export const formatTimeRange = (startIso: string, endIso: string): string =>
   `${formatTime(startIso)} – ${formatTime(endIso)}`;

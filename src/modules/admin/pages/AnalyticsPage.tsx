@@ -63,12 +63,14 @@ const RevenueChart = ({ points }: { points: AnalyticsSummary["revenue_series"] }
 
 const HourHeatRow = ({ buckets }: { buckets: AnalyticsSummary["by_hour"] }) => {
   const max = Math.max(1, ...buckets.map((b) => b.bookings));
+  const hourLabel = (h: number) => `${h % 12 === 0 ? 12 : h % 12} ${h >= 12 ? "PM" : "AM"}`;
+  
   return (
     <div className="flex items-end gap-[3px]">
       {buckets.map((b) => {
         const heightPct = (b.bookings / max) * 100;
         return (
-          <div key={b.hour} className="group relative flex-1" title={`${b.hour}:00 — ${b.bookings} bookings`}>
+          <div key={b.hour} className="group relative flex-1" title={`${hourLabel(b.hour)} — ${b.bookings} bookings`}>
             <div
               className="rounded-sm bg-neutral-900 transition-opacity"
               style={{ height: `${Math.max(3, heightPct)}%`, opacity: 0.25 + (heightPct / 100) * 0.75 }}
@@ -152,6 +154,7 @@ const AnalyticsPage = () => {
   const hasData = data.total_bookings > 0;
   const maxActivityRevenue = Math.max(1, ...data.by_activity.map((a) => a.revenue));
   const maxTableMinutes = Math.max(1, ...data.table_utilization.map((t) => t.minutes_booked));
+  
 
   return (
     <div className="flex flex-col gap-6">

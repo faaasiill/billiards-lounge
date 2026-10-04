@@ -16,6 +16,7 @@ import {
   type ClubClosure,
 } from "../services/settingsService";
 import DangerZone from "../components/DangerZone";
+import Toggle from "../components/notifications/Toggle";
 import {
   DEFAULT_HOURS,
   WEEKDAY_NAMES,
@@ -29,10 +30,14 @@ import Spinner from "../components/Spinner";
 import ErrorState from "../components/ErrorState";
 import EmptyState from "../components/EmptyState";
 
+/* text-base on small screens stops iOS from zooming into the field on focus. */
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 disabled:opacity-70";
+  "block w-full min-w-0 rounded-lg border border-neutral-300 bg-white px-3.5 py-2.5 text-base text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 disabled:opacity-70 sm:text-sm";
 
 const labelClass = "mb-1.5 block text-xs font-medium text-neutral-700";
+
+const primaryButton =
+  "flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto";
 
 const formatDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
@@ -40,36 +45,6 @@ const formatDate = (iso: string) =>
     month: "short",
     day: "numeric",
   });
-
-const Toggle = ({
-  checked,
-  onChange,
-  disabled,
-  label,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  disabled?: boolean;
-  label: string;
-}) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    aria-label={label}
-    disabled={disabled}
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-      checked ? "bg-emerald-600" : "bg-neutral-300"
-    }`}
-  >
-    <span
-      className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-        checked ? "translate-x-5" : "translate-x-0.5"
-      }`}
-    />
-  </button>
-);
 
 const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -280,7 +255,7 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex min-w-0 flex-col gap-6 sm:gap-8">
       <section>
         <h2 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">
           Settings
@@ -293,8 +268,8 @@ const SettingsPage = () => {
 
       {/* ---------------- Weekly schedule ---------------- */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
             <h3 className="text-sm font-medium text-neutral-900">
               Weekly schedule
             </h3>
@@ -303,12 +278,12 @@ const SettingsPage = () => {
               with no bookings possible.
             </p>
           </div>
-          <div className="flex gap-1.5">
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex">
             <button
               type="button"
               onClick={() => copyDayTo(1, [2, 3, 4, 5])}
               disabled={savingHours}
-              className="rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+              className="rounded-lg border border-neutral-200 px-2.5 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
             >
               Copy Mon → Tue–Fri
             </button>
@@ -316,7 +291,7 @@ const SettingsPage = () => {
               type="button"
               onClick={() => copyDayTo(1, [0, 2, 3, 4, 5, 6])}
               disabled={savingHours}
-              className="rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+              className="rounded-lg border border-neutral-200 px-2.5 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
             >
               Copy Mon → all
             </button>
@@ -340,36 +315,34 @@ const SettingsPage = () => {
                     : "border-neutral-200 bg-neutral-50"
                 }`}
               >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
-                  <div className="flex items-center justify-between gap-3 lg:w-56">
-                    <div className="flex items-center gap-3">
-                      <Toggle
-                        checked={day.is_open}
-                        onChange={(value) =>
-                          updateDay(weekday, { is_open: value })
-                        }
-                        disabled={savingHours}
-                        label={`${name} open`}
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-neutral-900">
-                          {name}
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            day.is_open
-                              ? "text-emerald-700"
-                              : "text-neutral-400"
-                          }`}
-                        >
-                          {day.is_open ? "Open" : "Closed"}
-                        </p>
-                      </div>
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[13rem_minmax(0,1fr)_11rem] lg:items-center lg:gap-6">
+                  {/* Day + switch */}
+                  <div className="flex items-center gap-3">
+                    <Toggle
+                      checked={day.is_open}
+                      onChange={(value) =>
+                        updateDay(weekday, { is_open: value })
+                      }
+                      disabled={savingHours}
+                      label={`${name} open`}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-neutral-900">
+                        {name}
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          day.is_open ? "text-emerald-700" : "text-neutral-400"
+                        }`}
+                      >
+                        {day.is_open ? "Open" : "Closed"}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="grid flex-1 grid-cols-2 gap-3">
-                    <div>
+                  {/* Times */}
+                  <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+                    <div className="min-w-0">
                       <label htmlFor={`open-${weekday}`} className={labelClass}>
                         Opening time
                       </label>
@@ -384,7 +357,7 @@ const SettingsPage = () => {
                         className={inputClass}
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <label
                         htmlFor={`close-${weekday}`}
                         className={labelClass}
@@ -404,7 +377,8 @@ const SettingsPage = () => {
                     </div>
                   </div>
 
-                  <div className="lg:w-48 lg:text-right">
+                  {/* Summary */}
+                  <div className="min-w-0 border-t border-neutral-100 pt-2.5 lg:border-0 lg:pt-0 lg:text-right">
                     <p className="text-sm font-medium text-neutral-900">
                       {describeHours(day)}
                     </p>
@@ -448,27 +422,36 @@ const SettingsPage = () => {
           </p>
         )}
 
-        <div className="mt-4 flex items-center gap-3">
+        {/* On phones the save bar sticks to the bottom while there are unsaved
+            changes, so it is always reachable after editing a day far up the list. */}
+        <div
+          className={`mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 ${
+            hoursDirty
+              ? "sticky bottom-0 z-10 -mx-4 border-t border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0"
+              : ""
+          }`}
+        >
           <button
             type="button"
             onClick={() => void handleSaveHours()}
             disabled={savingHours || !hoursDirty || hasHoursErrors}
-            className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className={primaryButton}
           >
             {savingHours && <Spinner />}
             {savingHours ? "Saving…" : "Save schedule"}
           </button>
+
           {hoursDirty && !savingHours && (
-            <span className="text-xs text-amber-600">Unsaved changes</span>
-          )}
-          {hoursDirty && !savingHours && (
-            <button
-              type="button"
-              onClick={() => setHours(savedHours)}
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-800"
-            >
-              Discard
-            </button>
+            <div className="flex items-center justify-between gap-3 sm:justify-start">
+              <span className="text-xs text-amber-600">Unsaved changes</span>
+              <button
+                type="button"
+                onClick={() => setHours(savedHours)}
+                className="rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+              >
+                Discard
+              </button>
+            </div>
           )}
         </div>
       </section>
@@ -484,14 +467,15 @@ const SettingsPage = () => {
           noValidate
           className="mt-4 flex flex-col gap-4"
         >
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="min-w-0">
               <label htmlFor="buffer-minutes" className={labelClass}>
                 Cleanup buffer (minutes)
               </label>
               <input
                 id="buffer-minutes"
                 type="number"
+                inputMode="numeric"
                 min={0}
                 value={bufferMinutes}
                 onChange={(e) => {
@@ -505,13 +489,14 @@ const SettingsPage = () => {
                 Applied after every booking, on every table, club-wide.
               </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <label htmlFor="default-duration" className={labelClass}>
                 Default duration (minutes)
               </label>
               <input
                 id="default-duration"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 value={defaultDuration}
                 onChange={(e) => {
@@ -547,7 +532,7 @@ const SettingsPage = () => {
           <button
             type="submit"
             disabled={savingGeneral}
-            className="flex items-center justify-center gap-2 self-start rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${primaryButton} sm:self-start`}
           >
             {savingGeneral && <Spinner />}
             {savingGeneral ? "Saving…" : "Save settings"}
@@ -568,9 +553,9 @@ const SettingsPage = () => {
         <form
           onSubmit={(e) => void handleAddClosure(e)}
           noValidate
-          className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.5fr_8rem_auto] lg:items-end"
         >
-          <div>
+          <div className="min-w-0">
             <label htmlFor="closure-start" className={labelClass}>
               Start date
             </label>
@@ -583,7 +568,7 @@ const SettingsPage = () => {
               className={inputClass}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label htmlFor="closure-end" className={labelClass}>
               End date
             </label>
@@ -596,7 +581,7 @@ const SettingsPage = () => {
               className={inputClass}
             />
           </div>
-          <div className="min-w-40 flex-1">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
             <label htmlFor="closure-reason" className={labelClass}>
               Reason
             </label>
@@ -609,7 +594,7 @@ const SettingsPage = () => {
               className={inputClass}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label htmlFor="closure-kind" className={labelClass}>
               Type
             </label>
@@ -630,10 +615,10 @@ const SettingsPage = () => {
           <button
             type="submit"
             disabled={addingClosure}
-            className="flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${primaryButton} sm:self-end`}
           >
             {addingClosure && <Spinner />}
-            {addingClosure ? "Adding…" : "Add"}
+            {addingClosure ? "Adding…" : "Add closure"}
           </button>
         </form>
 
@@ -665,19 +650,21 @@ const SettingsPage = () => {
               {closures.map((closure) => (
                 <li
                   key={closure.id}
-                  className="flex items-center justify-between gap-3 p-3.5"
+                  className="flex flex-col gap-2.5 p-3.5 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-neutral-900">
+                    <p className="break-words text-sm font-medium text-neutral-900">
                       {formatDate(closure.start_date)}
                       {closure.end_date !== closure.start_date
                         ? ` – ${formatDate(closure.end_date)}`
                         : ""}
                     </p>
-                    <p className="truncate text-xs text-neutral-500">
-                      {closure.reason ||
-                        (closure.kind === "holiday" ? "Holiday" : "Leave")}
-                      <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
+                      <span className="break-words">
+                        {closure.reason ||
+                          (closure.kind === "holiday" ? "Holiday" : "Leave")}
+                      </span>
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
                         {closure.kind}
                       </span>
                     </p>
@@ -685,7 +672,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => void handleRemoveClosure(closure.id)}
                     disabled={removingId === closure.id}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
                   >
                     {removingId === closure.id && (
                       <Spinner className="h-3 w-3" />
@@ -698,6 +685,7 @@ const SettingsPage = () => {
           )}
         </div>
       </section>
+
       <DangerZone
         onCleared={(scope) => {
           void loadClosures();
