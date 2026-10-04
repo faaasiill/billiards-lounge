@@ -13,7 +13,7 @@ import ConfirmationScreen from "./components/ConfirmationScreen";
 import BookingBar from "./components/BookingBar";
 import { ActivityListSkeleton, SlotGridSkeleton } from "./components/Skeleton";
 import StateCard, { AlertIcon, ClockIcon, HourglassIcon, TableIcon } from "./components/StateCard";
-import { PEAK_SURCHARGE, dateToOption, buildDateOptionsFrom } from "./mockData";
+import { dateToOption, buildDateOptionsFrom } from "./mockData";
 import { listPublicActivities } from "./services/activitiesPublicService";
 import {
   getActivityAvailability,
@@ -48,9 +48,6 @@ type BookingPageProps = {
   /** Navigates to About / Contact / Location from the menu. */
   onNavigate?: (page: InfoPage) => void;
 };
-
-/** Club-local peak window (hard-coded for now; move into club_settings later). */
-const PEAK_HOURS = new Set(["18:00", "19:00", "20:00"]);
 
 /** How far ahead we search for the first open day when today is closed. */
 const OPEN_DAY_SEARCH_WINDOW = 190;
@@ -234,7 +231,6 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
           label: formatLabel(s.startTime),
           // Past start times on today's date aren't bookable.
           available: s.tablesAvailable > 0 && new Date(s.startAt).getTime() > now,
-          isPeak: PEAK_HOURS.has(s.startTime),
         };
       });
 
@@ -290,7 +286,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     // Only multi-table activities show a table line.
     tableLabel: showTable ? (selectedTableLabel ?? "Any available") : null,
   };
-  const total = duration ? duration.price + (slot?.isPeak ? PEAK_SURCHARGE : 0) : undefined;
+  const total = duration ? duration.price : undefined;
   const canContinue = Boolean(slot && duration && players);
 
   /** Starts the schedule step for a bookable activity (a normal activity or a game type). */
@@ -365,8 +361,6 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
     setSubmitting(true);
     setSubmitError(null);
 
-    const peakSurcharge = slot.isPeak ? PEAK_SURCHARGE : 0;
-
     const { bookingCode, tableLabel, error } = await createBooking({
       activityId: activity.id,
       // Snapshot reads "Billiards · Snooker" for game types, plain name otherwise.
@@ -375,7 +369,6 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
       durationMinutes: duration.minutes,
       durationLabel: duration.label,
       price: duration.price,
-      peakSurcharge,
       startAt,
       players,
       customerName: customer.name,
@@ -405,7 +398,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
       duration,
       players,
       customer,
-      total: duration.price + peakSurcharge,
+      total: duration.price,
       createdAt: new Date().toISOString(),
       tableLabel: assignedLabel,
     });
@@ -638,7 +631,7 @@ const BookingPage = ({ onExit, onBookingConfirmed, onViewBookings, onNavigate }:
                       ? `Continue with ${activity.name}`
                       : "Log in to continue"
               }
-              subLabel={total !== undefined ? `₹${total} total${slot?.isPeak ? " · peak hour" : ""}` : undefined}
+              subLabel={total !== undefined ? `₹${total} total` : undefined}
               disabled={!canContinue}
               onPress={openNextSheet}
             />

@@ -21,39 +21,48 @@ const DRAG_CLOSE_THRESHOLD = 120;
  */
 const BottomSheet = ({ open, onClose, title, children, footer }: BottomSheetProps) => {
   const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
+  /** Flips true one frame after mounting so the slide-in transition runs. */
+  const [entered, setEntered] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [dragY, setDragY] = useState(0);
-  const dragging = useRef(false);
   const startY = useRef(0);
+
+  // Mount as soon as `open` turns true (adjusting state during render is the
+  // supported alternative to setting it in an effect).
+  if (open && !mounted) setMounted(true);
 
   useEffect(() => {
     if (open) {
-      setMounted(true);
-      const id = requestAnimationFrame(() => setVisible(true));
+      const id = requestAnimationFrame(() => setEntered(true));
       return () => cancelAnimationFrame(id);
     }
 
-    setVisible(false);
-    const timeout = window.setTimeout(() => setMounted(false), CLOSE_DURATION);
+    // Keep the sheet mounted while it slides out, then unmount.
+    const timeout = window.setTimeout(() => {
+      setMounted(false);
+      setEntered(false);
+    }, CLOSE_DURATION);
     return () => window.clearTimeout(timeout);
   }, [open]);
 
   if (!mounted) return null;
 
+  const visible = open && entered;
+
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    dragging.current = true;
     startY.current = e.clientY;
+    setDragging(true);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging.current) return;
+    if (!dragging) return;
     setDragY(Math.max(0, e.clientY - startY.current));
   };
 
   const endDrag = () => {
-    if (!dragging.current) return;
-    dragging.current = false;
+    if (!dragging) return;
+    setDragging(false);
     if (dragY > DRAG_CLOSE_THRESHOLD) onClose();
     setDragY(0);
   };
@@ -73,7 +82,7 @@ const BottomSheet = ({ open, onClose, title, children, footer }: BottomSheetProp
           visible ? "translate-y-0" : "translate-y-full"
         }`}
         style={
-          dragging.current
+          dragging
             ? { transform: `translateY(${dragY}px)`, transition: "none" }
             : undefined
         }

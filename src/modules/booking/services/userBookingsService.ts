@@ -9,7 +9,6 @@ type Row = {
   duration_minutes: number;
   duration_label: string;
   price: number;
-  peak_surcharge: number;
   total: number;
   start_at: string;
   players: number;
@@ -74,7 +73,6 @@ export const listBookingsByPhone = async (
         time: hmFormatter.format(start),
         label: timeFormatter.format(start).toUpperCase(),
         available: true,
-        isPeak: Number(r.peak_surcharge) > 0,
       },
       duration: { id: "", minutes: r.duration_minutes, label: r.duration_label, price: Number(r.price) },
       players: r.players,

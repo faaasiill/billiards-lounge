@@ -98,7 +98,6 @@ export type CreateBookingInput = {
   durationMinutes: number;
   durationLabel: string;
   price: number;
-  peakSurcharge: number;
   startAt: string; // ISO instant
   players: number;
   customerName: string;
@@ -141,7 +140,7 @@ export const createBooking = async (
   }
 
   const bookingCode = randomBookingCode();
-  const total = input.price + input.peakSurcharge;
+  const total = input.price;
 
   const { error: insertError } = await supabase.from("bookings").insert({
     booking_code: bookingCode,
@@ -152,7 +151,8 @@ export const createBooking = async (
     duration_minutes: input.durationMinutes,
     duration_label: input.durationLabel,
     price: input.price,
-    peak_surcharge: input.peakSurcharge,
+    // Column kept for history on old bookings; new bookings never carry a surcharge.
+    peak_surcharge: 0,
     total,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),

@@ -1,4 +1,3 @@
-import { PEAK_SURCHARGE } from "../mockData";
 import type { BookingDraft } from "../types";
 
 type ConfirmationScreenProps = {
@@ -40,7 +39,7 @@ const Row = ({ label, value, accent }: { label: string; value: string; accent?: 
 const ConfirmationScreen = ({ draft, bookingId, onDone, onViewBookings }: ConfirmationScreenProps) => {
   if (!draft.activity || !draft.date || !draft.slot || !draft.duration || !draft.players) return null;
 
-  const total = draft.duration.price + (draft.slot.isPeak ? PEAK_SURCHARGE : 0);
+  const total = draft.duration.price;
 
   return (
     <div className="flex h-full flex-col items-center justify-center overflow-y-auto px-8 py-8 text-center">

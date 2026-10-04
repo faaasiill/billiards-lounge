@@ -4,7 +4,7 @@ export interface DurationOption {
   id: string;
   minutes: number;
   label: string; // "60 min"
-  price: number; // absolute price for this duration, before any peak surcharge
+  price: number; // absolute price for this duration
 }
 
 export interface Activity {
@@ -28,7 +28,6 @@ export interface TimeSlot {
   time: string; // "18:00"
   label: string; // "6:00 PM"
   available: boolean;
-  isPeak: boolean;
 }
 
 export interface DateOption {

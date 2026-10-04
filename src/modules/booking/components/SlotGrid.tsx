@@ -12,7 +12,7 @@ type SlotGridProps = {
 const COMPACT_COUNT = 3;
 
 const slotButtonClass = (state: "disabled" | "selected" | "idle") =>
-  `relative flex min-h-[58px] flex-col items-center justify-center gap-0.5 rounded-full py-3 text-sm tracking-tight transition-all duration-200 ${
+  `flex min-h-[58px] items-center justify-center rounded-full py-3 text-sm tracking-tight transition-all duration-200 ${
     state === "disabled"
       ? "cursor-not-allowed text-ivory/25 line-through light:text-felt-dark/25"
       : state === "selected"
@@ -38,19 +38,7 @@ const SlotButton = ({
       onClick={() => onSelect(slot)}
       className={slotButtonClass(disabled ? "disabled" : selected ? "selected" : "idle")}
     >
-      {slot.isPeak && !disabled && (
-        <span
-          className={`absolute right-3 top-2.5 h-1.5 w-1.5 rounded-full ${
-            selected ? "bg-felt-dark/40" : "bg-brass"
-          }`}
-        />
-      )}
-      <span>{slot.label}</span>
-      {slot.isPeak && !disabled && (
-        <span className={`text-[10px] tracking-tighter ${selected ? "text-felt-dark/70" : "text-brass"}`}>
-          Peak
-        </span>
-      )}
+      {slot.label}
     </button>
   );
 };

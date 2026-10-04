@@ -1,5 +1,4 @@
 import BottomSheet from "./BottomSheet";
-import { PEAK_SURCHARGE } from "../mockData";
 import type { BookingDraft } from "../types";
 
 type ReviewSheetProps = {
@@ -52,8 +51,7 @@ const ReviewSheet = ({
     return null;
   }
 
-  const surcharge = draft.slot.isPeak ? PEAK_SURCHARGE : 0;
-  const total = draft.duration.price + surcharge;
+  const total = draft.duration.price;
 
   return (
     <BottomSheet
@@ -108,7 +106,6 @@ const ReviewSheet = ({
             label={`${draft.duration.label} session`}
             value={`₹${draft.duration.price}`}
           />
-          {surcharge > 0 && <Row label="Peak hour" value={`₹${surcharge}`} />}
         </div>
 
         <div className="mt-1 flex items-center justify-between border-t border-ivory/10 pt-3 light:border-felt-dark/10">

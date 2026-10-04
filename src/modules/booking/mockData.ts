@@ -1,8 +1,5 @@
 import type { DateOption } from "./types";
 
-/** Flat surcharge applied to peak-hour slots, on top of the chosen duration's price. */
-export const PEAK_SURCHARGE = 50;
-
 export const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
