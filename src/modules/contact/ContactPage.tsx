@@ -1,6 +1,10 @@
 import InfoPageShell, { CardLabel, InfoCard, PageHeading } from "../info/components/InfoPageShell";
 import PillAction from "../info/components/PillAction";
-import { ChatIcon, MailIcon, MapPinIcon, PhoneIcon } from "../info/components/icons";
+import MapEmbed from "../info/components/MapEmbed";
+import OpeningHoursList from "../info/components/OpeningHoursList";
+import { ChatIcon, MailIcon, MapPinIcon, NavigationIcon, PhoneIcon } from "../info/components/icons";
+import Seo from "../seo/Seo";
+import { MAP, OPENING_HOURS } from "../seo/siteConfig";
 import { CLUB_INFO, emailHref, phoneHref, whatsappHref } from "../info/clubInfo";
 import type { InfoPage } from "../info/types";
 
@@ -19,14 +23,19 @@ const ContactPage = ({ onBack, onStartBooking, onMyBookings, onNavigate }: Conta
     onMyBookings={onMyBookings}
     onNavigate={onNavigate}
   >
+    <Seo page="contact" />
+
     <PageHeading>
       Say <span className="text-brass">hello</span>.
     </PageHeading>
 
     <InfoCard delayMs={0}>
       <CardLabel>Call or message</CardLabel>
-      <p className="mb-4 font-display text-2xl leading-none tracking-[-0.06em] text-ivory light:text-felt-dark">
-        {CLUB_INFO.phoneDisplay}
+      <p className="mb-2 font-display text-2xl leading-none tracking-[-0.06em] text-ivory light:text-felt-dark">
+        <a href={phoneHref}>{CLUB_INFO.phoneDisplay}</a>
+      </p>
+      <p className="mb-4 text-sm leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
+        Questions about tables, games or a booking? Call or message us on WhatsApp and we will get back to you.
       </p>
       <div className="flex flex-col gap-2.5">
         <PillAction icon={<PhoneIcon />} label="Call us" detail={CLUB_INFO.phoneDisplay} href={phoneHref} />
@@ -44,24 +53,45 @@ const ContactPage = ({ onBack, onStartBooking, onMyBookings, onNavigate }: Conta
     <InfoCard delayMs={60}>
       <CardLabel>Email</CardLabel>
       <p className="mb-4 break-all text-sm tracking-tight text-ivory/70 light:text-felt-dark/70">
-        {CLUB_INFO.email}
+        <a href={emailHref}>{CLUB_INFO.email}</a>
       </p>
       <PillAction variant="secondary" icon={<MailIcon />} label="Send an email" href={emailHref} />
     </InfoCard>
 
-    <InfoCard delayMs={120}>
+    {OPENING_HOURS.length > 0 && (
+      <InfoCard delayMs={120}>
+        <CardLabel>Opening hours</CardLabel>
+        <OpeningHoursList />
+      </InfoCard>
+    )}
+
+    <InfoCard delayMs={OPENING_HOURS.length > 0 ? 180 : 120}>
       <CardLabel>Visit</CardLabel>
-      <p className="mb-4 text-sm leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
+      <address className="mb-4 text-sm not-italic leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
+        <span className="block font-display text-base tracking-[-0.04em] text-ivory light:text-felt-dark">
+          {CLUB_INFO.name}
+        </span>
         {CLUB_INFO.address}
-      </p>
-      {onNavigate ? (
+        <span className="mt-1 block text-xs tracking-tighter text-brass">{CLUB_INFO.landmark}</span>
+      </address>
+      <MapEmbed className="mb-4" title={`${CLUB_INFO.name} on Google Maps`} />
+      <div className="flex flex-col gap-2.5">
         <PillAction
-          variant="secondary"
-          icon={<MapPinIcon />}
-          label="See location"
-          onClick={() => onNavigate("location")}
+          icon={<NavigationIcon />}
+          label="Get Directions"
+          detail="Opens in Google Maps"
+          href={MAP.directionsUrl}
+          external
         />
-      ) : null}
+        {onNavigate ? (
+          <PillAction
+            variant="secondary"
+            icon={<MapPinIcon />}
+            label="See location"
+            onClick={() => onNavigate("location")}
+          />
+        ) : null}
+      </div>
     </InfoCard>
   </InfoPageShell>
 );

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run seo:pre && tsc -b && vite build && npm run seo:post",
+    "seo:pre": "node --env-file-if-exists=.env.production scripts/generate-seo-files.mjs",
+    "seo:post": "node --env-file-if-exists=.env.production scripts/prerender-meta.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

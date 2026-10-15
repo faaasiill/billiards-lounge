@@ -1,0 +1,56 @@
+{
+  "siteName": "Billiards Lounge",
+  "locale": "en_IN",
+  "ogImage": "https://i.pinimg.com/1200x/3a/45/ef/3a45efb47289bc3ba0e6196d4f15da43.jpg",
+  "ogImageAlt": "Billiards Lounge game room",
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "title": "Billiards Lounge | Snooker, Chess & PS5 in Edasserikadavu",
+      "description": "Book a snooker or 8-ball table, play chess or PS5, and relax at our premium café by the riverside in Edasserikadavu. Reserve your table online.",
+      "h1": "Billiards Lounge: snooker, 8-ball, chess and PS5 by the river",
+      "index": true
+    },
+    {
+      "id": "about",
+      "path": "/about",
+      "title": "About Billiards Lounge | Riverside Game Lounge & Café",
+      "description": "Billiards Lounge is a premium entertainment destination by the riverside of Edasserikadavu. Billiards, chess, PS5 and a relaxed café, all under one roof.",
+      "h1": "About Billiards Lounge",
+      "index": true
+    },
+    {
+      "id": "contact",
+      "path": "/contact",
+      "title": "Contact Billiards Lounge | Call, WhatsApp or Email",
+      "description": "Call, WhatsApp or email Billiards Lounge in Edasserikadavu to ask about tables, games and bookings. Find our phone number, email and address.",
+      "h1": "Contact Billiards Lounge",
+      "index": true
+    },
+    {
+      "id": "location",
+      "path": "/location",
+      "title": "Billiards Lounge Location & Directions | Edasserikadavu",
+      "description": "Find Billiards Lounge by the river in Edasserikadavu. See the address, open the map, get Google Maps directions and call us if you need help finding us.",
+      "h1": "Find Billiards Lounge by the river",
+      "index": true
+    },
+    {
+      "id": "booking",
+      "path": "/book",
+      "title": "Book a Table | Billiards Lounge",
+      "description": "Reserve a billiards, snooker, chess or PS5 slot at Billiards Lounge.",
+      "h1": "Book a table at Billiards Lounge",
+      "index": false
+    },
+    {
+      "id": "myBookings",
+      "path": "/my-bookings",
+      "title": "My Bookings | Billiards Lounge",
+      "description": "View and manage your Billiards Lounge bookings.",
+      "h1": "My bookings",
+      "index": false
+    }
+  ]
+}

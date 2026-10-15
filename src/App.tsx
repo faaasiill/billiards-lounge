@@ -3,6 +3,8 @@ import HomePage from "./modules/home";
 import { ThemeProvider } from "./context/ThemeContext";
 import { isAdminPath } from "./modules/admin/hooks/useAdminRoute";
 import { useCustomerSession } from "./modules/booking/hooks/useCustomerSession";
+import Seo from "./modules/seo/Seo";
+import { pathToView, viewToPath } from "./modules/seo/routes";
 import type { Booking } from "./modules/booking/types";
 import type { InfoPage } from "./modules/info/types";
 
@@ -16,8 +18,11 @@ const LocationPage = lazy(() => import("./modules/location"));
 
 type View = "home" | "booking" | "myBookings" | InfoPage;
 
+// Every view has a real, crawlable URL (/, /about, /contact, /location, /book, /my-bookings).
+const readView = () => pathToView(window.location.pathname) as View;
+
 const App = () => {
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(readView);
   const [adminRoute, setAdminRoute] = useState(() => isAdminPath(window.location.hash));
 
   const { session } = useCustomerSession();
@@ -29,6 +34,13 @@ const App = () => {
     const onHashChange = () => setAdminRoute(isAdminPath(window.location.hash));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  // Browser back/forward buttons move between views.
+  useEffect(() => {
+    const onPopState = () => setView(readView());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   // Warm the other views once the home page is idle so navigation stays instant.
@@ -74,10 +86,19 @@ const App = () => {
     }
   }, [view, refreshBookings]);
 
-  const goHome = () => setView("home");
-  const goBooking = () => setView("booking");
-  const goMyBookings = () => setView("myBookings");
-  const goInfo = (page: InfoPage) => setView(page);
+  const navigate = useCallback((next: View) => {
+    const path = viewToPath(next);
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, "", path);
+    }
+    setView(next);
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  const goHome = () => navigate("home");
+  const goBooking = () => navigate("booking");
+  const goMyBookings = () => navigate("myBookings");
+  const goInfo = (page: InfoPage) => navigate(page);
 
   if (adminRoute) {
     return (
@@ -96,30 +117,39 @@ const App = () => {
   return (
     <ThemeProvider>
       {view === "home" && (
-        <HomePage onReserve={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
+        <>
+          <Seo page="home" />
+          <HomePage onReserve={goBooking} onMyBookings={goMyBookings} onNavigate={goInfo} />
+        </>
       )}
 
       <Suspense fallback={null}>
         {view === "booking" && (
-          <BookingPage
-            onExit={goHome}
-            onBookingConfirmed={() => {}}
-            onViewBookings={goMyBookings}
-            onNavigate={goInfo}
-          />
+          <>
+            <Seo page="booking" />
+            <BookingPage
+              onExit={goHome}
+              onBookingConfirmed={() => {}}
+              onViewBookings={goMyBookings}
+              onNavigate={goInfo}
+            />
+          </>
         )}
 
         {view === "myBookings" && (
-          <MyBookingsPage
-            bookings={bookings}
-            loading={bookingsLoading}
-            error={bookingsError}
-            loggedIn={Boolean(session)}
-            onRetry={() => void refreshBookings()}
-            onBack={goHome}
-            onStartBooking={goBooking}
-            onNavigate={goInfo}
-          />
+          <>
+            <Seo page="myBookings" />
+            <MyBookingsPage
+              bookings={bookings}
+              loading={bookingsLoading}
+              error={bookingsError}
+              loggedIn={Boolean(session)}
+              onRetry={() => void refreshBookings()}
+              onBack={goHome}
+              onStartBooking={goBooking}
+              onNavigate={goInfo}
+            />
+          </>
         )}
 
         {view === "about" && (

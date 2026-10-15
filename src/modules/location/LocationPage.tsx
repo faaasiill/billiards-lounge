@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import InfoPageShell, { CardLabel, InfoCard, PageHeading } from "../info/components/InfoPageShell";
 import PillAction from "../info/components/PillAction";
+import MapEmbed from "../info/components/MapEmbed";
+import OpeningHoursList from "../info/components/OpeningHoursList";
 import { CheckIcon, CopyIcon, MapPinIcon, NavigationIcon, PhoneIcon } from "../info/components/icons";
-import StateCard, { ClockIcon } from "../booking/components/StateCard";
-import { CLUB_INFO, hasMapsLink, phoneHref } from "../info/clubInfo";
+import Seo from "../seo/Seo";
+import { MAP, OPENING_HOURS } from "../seo/siteConfig";
+import { CLUB_INFO, phoneHref } from "../info/clubInfo";
 import type { InfoPage } from "../info/types";
 
 type LocationPageProps = {
@@ -43,6 +46,8 @@ const LocationPage = ({ onBack, onStartBooking, onMyBookings, onNavigate }: Loca
       onMyBookings={onMyBookings}
       onNavigate={onNavigate}
     >
+      <Seo page="location" />
+
       <PageHeading>
         Find us by the <span className="text-brass">river</span>.
       </PageHeading>
@@ -56,58 +61,57 @@ const LocationPage = ({ onBack, onStartBooking, onMyBookings, onNavigate }: Loca
             <span className="block font-display text-lg leading-tight tracking-[-0.04em] text-ivory light:text-felt-dark">
               {CLUB_INFO.name}
             </span>
-            <span className="mt-1 block text-sm leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
+            <address className="mt-1 block text-sm not-italic leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
               {CLUB_INFO.address}
-            </span>
+            </address>
             <span className="mt-2 block text-xs tracking-tighter text-brass">{CLUB_INFO.landmark}</span>
           </div>
         </div>
       </InfoCard>
 
       <InfoCard delayMs={60}>
-        <CardLabel>Get directions</CardLabel>
+        <CardLabel>On the map</CardLabel>
+        <MapEmbed className="mb-4" title={`${CLUB_INFO.name} on Google Maps`} />
+        <div className="flex flex-col gap-2.5">
+          <PillAction
+            icon={<NavigationIcon />}
+            label="Get Directions"
+            detail="Opens in Google Maps"
+            href={MAP.directionsUrl}
+            external
+          />
+          <PillAction
+            variant="secondary"
+            icon={copied ? <CheckIcon /> : <CopyIcon />}
+            label={copied ? "Address copied" : "Copy address"}
+            onClick={() => void copyAddress()}
+          />
+        </div>
+      </InfoCard>
 
-        {hasMapsLink ? (
-          <div className="flex flex-col gap-2.5">
-            <PillAction
-              icon={<NavigationIcon />}
-              label="Get Directions"
-              detail="Opens in Google Maps"
-              href={CLUB_INFO.googleMapsUrl}
-              external
-            />
-            <PillAction
-              variant="secondary"
-              icon={copied ? <CheckIcon /> : <CopyIcon />}
-              label={copied ? "Address copied" : "Copy address"}
-              onClick={() => void copyAddress()}
-            />
-          </div>
-        ) : (
-          <>
-            <StateCard
-              compact
-              icon={<ClockIcon />}
-              title="Map link coming soon"
-              description="Our Google Maps listing is being verified. Call us for directions in the meantime."
-            />
-            <div className="mt-3 flex flex-col gap-2.5">
-              <PillAction
-                variant="secondary"
-                icon={<PhoneIcon />}
-                label="Call for directions"
-                detail={CLUB_INFO.phoneDisplay}
-                href={phoneHref}
-              />
-              <PillAction
-                variant="secondary"
-                icon={copied ? <CheckIcon /> : <CopyIcon />}
-                label={copied ? "Address copied" : "Copy address"}
-                onClick={() => void copyAddress()}
-              />
-            </div>
-          </>
-        )}
+      {OPENING_HOURS.length > 0 && (
+        <InfoCard delayMs={120}>
+          <CardLabel>Opening hours</CardLabel>
+          <OpeningHoursList />
+        </InfoCard>
+      )}
+
+      <InfoCard delayMs={OPENING_HOURS.length > 0 ? 180 : 120}>
+        <CardLabel>Getting here</CardLabel>
+        <p className="mb-4 text-sm leading-relaxed tracking-tight text-ivory/70 light:text-felt-dark/70">
+          {CLUB_INFO.name} is on the riverside at Edasserikadavu, {CLUB_INFO.landmark}. Open the map for
+          turn-by-turn directions from wherever you are, or call us and we will guide you in.
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <PillAction
+            variant="secondary"
+            icon={<PhoneIcon />}
+            label="Call for directions"
+            detail={CLUB_INFO.phoneDisplay}
+            href={phoneHref}
+          />
+          <PillAction label="Reserve your table" onClick={onStartBooking} />
+        </div>
       </InfoCard>
     </InfoPageShell>
   );
